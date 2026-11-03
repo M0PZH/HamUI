@@ -1,0 +1,42 @@
+/* Spectrum, waterfall and the combined panadapter.
+ * Give .ham-spectrum / .ham-waterfall a height; the canvas fills it. */
+.ham-spectrum, .ham-waterfall {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--ham-inset);
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  /* vertical page scroll stays native; pinch and horizontal pan are ours */
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+.ham-spectrum { height: 200px; }
+.ham-waterfall { height: 220px; }
+.ham-spectrum > canvas, .ham-waterfall > canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.ham-waterfall > canvas.ham-wf-image { image-rendering: auto; }
+.ham-scope-readout {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 6px;
+  border-radius: var(--ham-radius-sm);
+  background: color-mix(in srgb, var(--ham-surface) 85%, transparent);
+  color: var(--ham-fg-muted);
+  font: 11px var(--ham-font-mono);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ham-duration);
+}
+.ham-spectrum.is-hover .ham-scope-readout, .ham-waterfall.is-hover .ham-scope-readout { opacity: 1; }
+.ham-spectrum.is-dragging, .ham-waterfall.is-dragging { cursor: grabbing; }
+
+.ham-panadapter { display: flex; flex-direction: column; min-width: 0; }
+.ham-panadapter > .ham-waterfall { border-top: 1px solid var(--ham-border); }
+
+/* toolbar above a scope */
+.ham-scope-bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--ham-space-2); padding: 8px var(--ham-space-4); }
+.ham-scope-bar > .ham-spacer { flex: 1; }
+.ham-scope-span { min-width: 76px; color: var(--ham-fg-muted); font: 11px var(--ham-font-mono); text-align: center; font-variant-numeric: tabular-nums; }

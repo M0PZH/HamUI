@@ -1,0 +1,40 @@
+{
+  "name": "hamui",
+  "version": "0.1.0",
+  "description": "A quiet, modern UI framework for ham radio software: spectrum, waterfall, meters, VFO and the basics.",
+  "type": "module",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "main": "./dist/hamui.umd.cjs",
+  "module": "./dist/hamui.js",
+  "style": "./dist/hamui.css",
+  "exports": {
+    ".": {
+      "import": "./dist/hamui.js",
+      "require": "./dist/hamui.umd.cjs"
+    },
+    "./css": "./dist/hamui.css",
+    "./src/*": "./src/*"
+  },
+  "sideEffects": [
+    "*.css",
+    "./src/build-entry.js"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:site": "vite build --mode site"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  },
+  "homepage": "https://m0pzh.github.io/HamUI/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/M0PZH/HamUI.git"
+  }
+}

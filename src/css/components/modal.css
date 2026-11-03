@@ -1,0 +1,31 @@
+/* <dialog class="ham-modal"> … </dialog>, opened with HamUI.Modal or data-ham-open="#id" */
+.ham-modal {
+  width: min(520px, calc(100vw - 2 * var(--ham-space-4)));
+  max-height: calc(100dvh - 2 * var(--ham-space-5));
+  padding: 0;
+  border: 1px solid var(--ham-border-strong);
+  border-radius: var(--ham-radius-lg);
+  background: var(--ham-surface);
+  color: var(--ham-fg);
+  box-shadow: var(--ham-shadow);
+}
+.ham-modal::backdrop { background: var(--ham-backdrop); }
+.ham-modal[open] { display: flex; flex-direction: column; }
+.ham-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ham-space-3);
+  padding: var(--ham-space-3) var(--ham-space-4);
+  border-bottom: 1px solid var(--ham-border);
+}
+.ham-modal-title { margin: 0; font-size: var(--ham-text-base); font-weight: 600; }
+.ham-modal-body { padding: var(--ham-space-4); overflow-y: auto; }
+.ham-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--ham-space-2);
+  padding: var(--ham-space-3) var(--ham-space-4);
+  border-top: 1px solid var(--ham-border);
+}

@@ -1,0 +1,184 @@
+.ham-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ham-field > label, .ham-field-label { font-size: var(--ham-text-sm); color: var(--ham-fg-muted); }
+.ham-field-help { font-size: var(--ham-text-sm); color: var(--ham-fg-faint); }
+.ham-field-error { font-size: var(--ham-text-sm); color: var(--ham-tx); }
+
+.ham-input, .ham-select, .ham-textarea {
+  appearance: none;
+  width: 100%;
+  min-height: var(--ham-hit);
+  padding: 0 10px;
+  border: 1px solid var(--ham-border-strong);
+  border-radius: var(--ham-radius-md);
+  background: var(--ham-inset);
+  color: var(--ham-fg);
+  font: var(--ham-text-md) var(--ham-font-ui);
+  transition: border-color var(--ham-duration), box-shadow var(--ham-duration);
+}
+.ham-textarea { padding: 8px 10px; min-height: 80px; resize: vertical; line-height: 1.5; }
+.ham-input::placeholder, .ham-textarea::placeholder { color: var(--ham-fg-faint); }
+.ham-input:focus, .ham-select:focus, .ham-textarea:focus {
+  outline: none;
+  border-color: var(--ham-accent);
+  box-shadow: 0 0 0 3px var(--ham-accent-weak);
+}
+.ham-input[aria-invalid="true"] { border-color: var(--ham-tx); }
+.ham-input:disabled, .ham-select:disabled { opacity: 0.5; cursor: not-allowed; }
+.ham-input.ham-mono { font-family: var(--ham-font-mono); }
+.ham-input-sm, .ham-select.ham-input-sm { min-height: var(--ham-hit-sm); font-size: var(--ham-text-sm); padding: 0 8px; }
+
+.ham-select {
+  padding-right: 28px;
+  cursor: pointer;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ham-fg-muted) 50%),
+    linear-gradient(135deg, var(--ham-fg-muted) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* input with unit addon: <div class="ham-input-group"><input class="ham-input"><span class="ham-addon">kHz</span></div> */
+.ham-input-group { display: flex; min-width: 0; }
+.ham-input-group > .ham-input, .ham-input-group > .ham-select { flex: 1; min-width: 0; border-radius: 0; }
+.ham-input-group > :first-child { border-top-left-radius: var(--ham-radius-md); border-bottom-left-radius: var(--ham-radius-md); }
+.ham-input-group > :last-child { border-top-right-radius: var(--ham-radius-md); border-bottom-right-radius: var(--ham-radius-md); }
+.ham-input-group > * + * { margin-left: -1px; }
+.ham-input-group > .ham-input:focus { position: relative; z-index: 1; }
+.ham-addon {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid var(--ham-border-strong);
+  background: var(--ham-surface-2);
+  color: var(--ham-fg-muted);
+  font-size: var(--ham-text-sm);
+  white-space: nowrap;
+}
+
+/* checkbox & radio: <label class="ham-check"><input type="checkbox"> Label</label> */
+.ham-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ham-hit);
+  font-size: var(--ham-text-md);
+  cursor: pointer;
+  user-select: none;
+}
+.ham-check > input {
+  appearance: none;
+  flex: none;
+  display: grid;
+  place-content: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--ham-border-strong);
+  border-radius: 3px;
+  background: var(--ham-inset);
+  cursor: pointer;
+}
+.ham-check > input[type="radio"] { border-radius: 50%; }
+.ham-check > input:checked { background: var(--ham-accent); border-color: var(--ham-accent); }
+.ham-check > input[type="checkbox"]:checked::after {
+  content: "";
+  width: 8px;
+  height: 4px;
+  border: 2px solid var(--ham-accent-fg);
+  border-top: 0;
+  border-right: 0;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.ham-check > input[type="radio"]:checked::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ham-accent-fg);
+}
+.ham-check > input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* switch: <label class="ham-switch"><input type="checkbox"> NB</label> */
+.ham-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--ham-hit);
+  font-size: var(--ham-text-md);
+  cursor: pointer;
+  user-select: none;
+}
+.ham-switch > input {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 30px;
+  height: 18px;
+  margin: 0;
+  border-radius: 9px;
+  background: var(--ham-border-strong);
+  cursor: pointer;
+  transition: background 150ms;
+}
+.ham-switch > input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ham-fg);
+  transition: transform 150ms;
+}
+.ham-switch > input:checked { background: var(--ham-accent); }
+.ham-switch > input:checked::after { transform: translateX(12px); background: var(--ham-accent-fg); }
+@media (pointer: coarse) {
+  .ham-switch > input { width: 40px; height: 24px; border-radius: 12px; }
+  .ham-switch > input::after { width: 20px; height: 20px; }
+  .ham-switch > input:checked::after { transform: translateX(16px); }
+}
+
+/* range: --ham-range-p is kept in sync by HamUI.init() */
+.ham-range {
+  appearance: none;
+  width: 100%;
+  height: var(--ham-hit);
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.ham-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--ham-accent) var(--ham-range-p, 50%), var(--ham-border-strong) var(--ham-range-p, 50%));
+}
+.ham-range::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--ham-accent) var(--ham-range-p, 50%), var(--ham-border-strong) var(--ham-range-p, 50%));
+}
+.ham-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ham-fg);
+  box-shadow: 0 0 0 3px var(--ham-bg);
+}
+.ham-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ham-fg);
+  box-shadow: 0 0 0 3px var(--ham-bg);
+}
+@media (pointer: coarse) {
+  .ham-range::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -9px; }
+  .ham-range::-moz-range-thumb { width: 22px; height: 22px; }
+}

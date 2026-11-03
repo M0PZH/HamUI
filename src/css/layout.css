@@ -1,0 +1,45 @@
+/* Containers */
+.ham-container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-left: max(var(--ham-space-4), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--ham-space-4), env(safe-area-inset-right, 0px));
+}
+.ham-container-fluid { max-width: none; }
+
+/* 12-column grid. Columns stack below 720px unless .ham-grid-keep. */
+.ham-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--ham-gap, var(--ham-space-4));
+}
+.ham-grid > * { grid-column: span 12; min-width: 0; }
+.ham-col-1 { grid-column: span 1; } .ham-col-2 { grid-column: span 2; }
+.ham-col-3 { grid-column: span 3; } .ham-col-4 { grid-column: span 4; }
+.ham-col-5 { grid-column: span 5; } .ham-col-6 { grid-column: span 6; }
+.ham-col-7 { grid-column: span 7; } .ham-col-8 { grid-column: span 8; }
+.ham-col-9 { grid-column: span 9; } .ham-col-10 { grid-column: span 10; }
+.ham-col-11 { grid-column: span 11; } .ham-col-12 { grid-column: span 12; }
+.ham-grid > [class*="ham-col-"] { grid-column: span 12; }
+@media (min-width: 720px) {
+  .ham-grid > .ham-col-1 { grid-column: span 1; } .ham-grid > .ham-col-2 { grid-column: span 2; }
+  .ham-grid > .ham-col-3 { grid-column: span 3; } .ham-grid > .ham-col-4 { grid-column: span 4; }
+  .ham-grid > .ham-col-5 { grid-column: span 5; } .ham-grid > .ham-col-6 { grid-column: span 6; }
+  .ham-grid > .ham-col-7 { grid-column: span 7; } .ham-grid > .ham-col-8 { grid-column: span 8; }
+  .ham-grid > .ham-col-9 { grid-column: span 9; } .ham-grid > .ham-col-10 { grid-column: span 10; }
+  .ham-grid > .ham-col-11 { grid-column: span 11; } .ham-grid > .ham-col-12 { grid-column: span 12; }
+}
+
+/* Auto-fit card grid: columns as wide as --ham-min (default 300px) */
+.ham-auto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--ham-min, 300px)), 1fr));
+  gap: var(--ham-gap, var(--ham-space-4));
+}
+.ham-auto-grid > * { min-width: 0; }
+
+/* Stacks */
+.ham-stack { display: flex; flex-direction: column; gap: var(--ham-gap, var(--ham-space-3)); }
+.ham-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ham-gap, var(--ham-space-2)); }
+.ham-spacer { flex: 1; }

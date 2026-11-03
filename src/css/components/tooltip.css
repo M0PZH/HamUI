@@ -1,0 +1,14 @@
+.ham-tooltip {
+  position: fixed;
+  z-index: 1100;
+  max-width: 260px;
+  padding: 5px 8px;
+  border-radius: var(--ham-radius-sm);
+  background: var(--ham-fg);
+  color: var(--ham-bg);
+  font: var(--ham-text-sm)/1.4 var(--ham-font-ui);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms;
+}
+.ham-tooltip.is-visible { opacity: 1; }

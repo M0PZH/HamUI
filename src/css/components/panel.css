@@ -1,0 +1,33 @@
+/* Panel (Bootstrap "card"): a bordered surface with optional head/foot. */
+.ham-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--ham-surface);
+  border: 1px solid var(--ham-border);
+  border-radius: var(--ham-radius-lg);
+}
+.ham-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ham-space-3);
+  min-height: 44px;
+  padding: 10px var(--ham-space-4);
+  border-bottom: 1px solid var(--ham-border);
+}
+.ham-panel-title { margin: 0; font-size: var(--ham-text-md); font-weight: 500; color: var(--ham-fg-muted); }
+.ham-panel-body { padding: var(--ham-space-4); min-width: 0; }
+.ham-panel-flush { padding: 0; }
+.ham-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--ham-space-2);
+  padding: 10px var(--ham-space-4);
+  border-top: 1px solid var(--ham-border);
+}
+/* clip children (canvases, tables) to the rounded corners */
+.ham-panel-clip { overflow: hidden; }

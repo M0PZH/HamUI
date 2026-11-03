@@ -1,0 +1,51 @@
+/* Status bar & TX/RX indicator */
+.ham-statusbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ham-space-2) var(--ham-space-4);
+  min-height: 38px;
+  padding: 6px var(--ham-space-4);
+  border-bottom: 1px solid var(--ham-border);
+  color: var(--ham-fg-muted);
+  font-size: var(--ham-text-sm);
+}
+.ham-statusbar > .ham-spacer { flex: 1; }
+.ham-kv { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.ham-kv > b, .ham-kv > strong { font-weight: 500; color: var(--ham-fg); font-family: var(--ham-font-mono); font-variant-numeric: tabular-nums; }
+
+/* <span class="ham-trx" data-state="rx|tx|off">RX</span> — steady colors, no blinking */
+.ham-trx {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--ham-radius-sm);
+  background: color-mix(in srgb, var(--ham-rx) 12%, transparent);
+  color: var(--ham-rx);
+  font: 600 var(--ham-text-xs) var(--ham-font-mono);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.ham-trx::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ham-trx[data-state="tx"] { background: color-mix(in srgb, var(--ham-tx) 14%, transparent); color: var(--ham-tx); }
+.ham-trx[data-state="off"] { background: var(--ham-surface-2); color: var(--ham-fg-faint); }
+
+/* small boolean lamp: <span class="ham-lamp" data-on="true">NB</span> */
+.ham-lamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ham-fg-faint);
+  font: 500 var(--ham-text-xs) var(--ham-font-mono);
+  letter-spacing: 0.06em;
+}
+.ham-lamp::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ham-border-strong); }
+.ham-lamp[data-on="true"] { color: var(--ham-fg); }
+.ham-lamp[data-on="true"]::before { background: var(--ham-accent); }
+.ham-lamp[data-on="true"][data-tone="rx"]::before { background: var(--ham-rx); }
+.ham-lamp[data-on="true"][data-tone="tx"]::before { background: var(--ham-tx); }
+.ham-lamp[data-on="true"][data-tone="warn"]::before { background: var(--ham-warn); }
+
+.ham-clock { font-family: var(--ham-font-mono); font-variant-numeric: tabular-nums; }

@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>HamUI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="./src/css/hamui.css">
+  <link rel="stylesheet" href="./docs/docs.css">
+</head>
+<body>
+<header class="doc-top">
+  <div class="ham-container doc-top-inner">
+    <a class="doc-brand" href="#">HamUI <small>v0.1.0</small></a>
+    <span class="ham-spacer"></span>
+    <a class="ham-btn ham-btn-ghost ham-btn-sm" href="./demo/radio.html">Radio demo</a>
+    <a class="ham-btn ham-btn-ghost ham-btn-sm" href="./playground.html">Playground</a>
+    <a class="ham-btn ham-btn-ghost ham-btn-sm" href="https://github.com/M0PZH/HamUI">GitHub</a>
+    <div class="ham-seg ham-seg-sm" id="themeSeg" data-ham="segmented" data-label="Theme">
+      <button data-value="dark">Dark</button>
+      <button data-value="light">Light</button>
+      <button data-value="auto">System</button>
+    </div>
+  </div>
+</header>
+
+<div class="ham-container doc-layout">
+  <nav class="doc-nav" aria-label="Contents">
+    <span class="ham-label">Getting started</span>
+    <a href="#start">Install &amp; use</a>
+    <a href="#theme">Themes &amp; tokens</a>
+    <a href="#layout">Layout</a>
+    <span class="ham-label">Components</span>
+    <a href="#buttons">Buttons</a>
+    <a href="#segmented">Segmented control</a>
+    <a href="#forms">Forms</a>
+    <a href="#badges">Badges &amp; lamps</a>
+    <a href="#panels">Panels</a>
+    <a href="#tabs">Tabs</a>
+    <a href="#tables">Tables</a>
+    <a href="#feedback">Toasts, tooltips, dialogs</a>
+    <span class="ham-label">Radio</span>
+    <a href="#frequency">Frequency display</a>
+    <a href="#meters">Meters</a>
+    <a href="#spectrum">Spectrum</a>
+    <a href="#waterfall">Waterfall</a>
+    <a href="#panadapter">Panadapter</a>
+    <a href="#gestures">Gestures</a>
+    <a href="#knob">Knob</a>
+    <a href="#selectors">Band &amp; mode</a>
+    <a href="#station">Station status</a>
+    <span class="ham-label">Reference</span>
+    <a href="#api">JS API</a>
+  </nav>
+
+  <main class="doc-main">
+    <section class="doc-section doc-hero" id="start">
+      <h1>HamUI</h1>
+      <p class="ham-lede">A UI framework for amateur radio software. One stylesheet covers layout and the everyday components; one dependency-free script adds the interactive radio instruments: spectrum, waterfall, meters and VFO. Dark by default with a light theme, and usable with a trackpad or touch screen.</p>
+      <h3>Include</h3>
+      <pre><code>&lt;link rel="stylesheet" href="dist/hamui.css"&gt;
+&lt;script src="dist/hamui.umd.cjs"&gt;&lt;/script&gt;   &lt;!-- window.HamUI --&gt;
+&lt;script&gt; HamUI.init(); &lt;/script&gt;</code></pre>
+      <p>Or as an ES module:</p>
+      <pre><code>import 'hamui/css';
+import HamUI, { Spectrum, Meter } from 'hamui';
+HamUI.init();                       // set up every [data-ham] element on the page
+const s = new Spectrum('#scope', { startHz: 14069500, spanHz: 12000 });
+s.update(levels);                   // Float32Array of dB(m)</code></pre>
+      <p>Like Bootstrap there are two ways to use it: add <code>data-ham="..."</code> attributes and call <code>HamUI.init()</code>, or construct a component class directly. Options can be passed as <code>data-*</code> attributes (for example <code>data-min-db="-130"</code>) or as an object. Component events are bubbling <code>ham:</code>-prefixed CustomEvents.</p>
+    </section>
+
+    <section class="doc-section" id="theme">
+      <h2>Themes &amp; tokens</h2>
+      <p>Every color, font and spacing value is a <code>--ham-*</code> CSS custom property. Set <code>data-theme="dark | light | auto"</code> on <code>&lt;html&gt;</code> or on any container to switch themes; canvas components re-read their colors and repaint.</p>
+      <div class="doc-example" data-no-code>
+        <div class="doc-preview">
+          <div class="doc-swatches" id="swatches"></div>
+          <div class="ham-field"><span class="ham-field-label">Waterfall color ramp <code>--ham-wf-0 … --ham-wf-4</code></span><div class="doc-cmap"></div></div>
+        </div>
+      </div>
+      <pre><code>HamUI.theme.set('light');      // 'dark' | 'light' | 'auto'
+HamUI.theme.toggle();
+HamUI.theme.onChange(() =&gt; …);  // ham:themechange is also dispatched on document</code></pre>
+      <p>Spacing follows a 4 px grid (<code>--ham-space-1</code> … <code>-7</code> = 4, 8, 12, 16, 24, 32, 48); radii are 4 / 6 / 8. The hit target <code>--ham-hit</code> is 30 px with a mouse and grows to 44 px on <code>(pointer: coarse)</code> devices.</p>
+    </section>
+
+    <section class="doc-section" id="layout">
+      <h2>Layout</h2>
+      <p><code>.ham-container</code> centers content at a maximum width; <code>.ham-grid</code> is a 12-column grid that stacks below 720 px; <code>.ham-auto-grid</code> fits as many columns as a minimum width allows; <code>.ham-stack</code> stacks vertically and <code>.ham-cluster</code> wraps horizontally.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-grid">
+            <div class="ham-col-8 ham-panel ham-p-3 ham-muted">ham-col-8</div>
+            <div class="ham-col-4 ham-panel ham-p-3 ham-muted">ham-col-4</div>
+          </div>
+          <div class="ham-auto-grid" style="--ham-min: 160px">
+            <div class="ham-panel ham-p-3 ham-muted">auto</div>
+            <div class="ham-panel ham-p-3 ham-muted">auto</div>
+            <div class="ham-panel ham-p-3 ham-muted">auto</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="buttons">
+      <h2>Buttons</h2>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-cluster">
+            <button class="ham-btn ham-btn-primary">Connect radio</button>
+            <button class="ham-btn">Settings</button>
+            <button class="ham-btn ham-btn-ghost">Cancel</button>
+            <button class="ham-btn ham-btn-danger">Stop TX</button>
+            <button class="ham-btn" disabled>Disabled</button>
+          </div>
+          <div class="ham-cluster">
+            <button class="ham-btn ham-btn-sm">Small</button>
+            <button class="ham-btn">Default</button>
+            <button class="ham-btn ham-btn-lg">Large</button>
+            <button class="ham-btn ham-btn-icon" aria-label="Mute" data-ham-tooltip="Mute">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 6h3l4-3v10l-4-3H2z"/><path d="M11.5 5.5l3 3m0-3l-3 3"/></svg>
+            </button>
+            <button class="ham-btn" aria-pressed="true">NB on</button>
+          </div>
+          <div class="ham-btn-group">
+            <button class="ham-btn ham-btn-sm">A/B</button>
+            <button class="ham-btn ham-btn-sm">A=B</button>
+            <button class="ham-btn ham-btn-sm">Split</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="segmented">
+      <h2>Segmented control</h2>
+      <p>One choice among a few; arrow keys move the selection. <code>.ham-seg-mono</code> uses the monospace face, which suits steps and bands.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-seg ham-seg-mono" data-ham="segmented" data-value="100 Hz">
+            <button>10 Hz</button>
+            <button>100 Hz</button>
+            <button>1 kHz</button>
+            <button>5 kHz</button>
+          </div>
+          <div class="ham-seg" data-ham="segmented" data-items='["Off","Fast","Mid","Slow"]' data-value="Mid" data-label="AGC"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="forms">
+      <h2>Forms</h2>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-auto-grid" style="--ham-min: 220px">
+            <div class="ham-field">
+              <label for="fFreq">Frequency</label>
+              <div class="ham-input-group">
+                <input class="ham-input ham-mono" id="fFreq" value="14074.000" inputmode="decimal">
+                <span class="ham-addon">kHz</span>
+              </div>
+            </div>
+            <div class="ham-field">
+              <label for="fRig">Radio</label>
+              <select class="ham-select" id="fRig">
+                <option>Icom IC-7300 (CI-V)</option>
+                <option>Yaesu FT-991A (CAT)</option>
+                <option>Kenwood TS-890S</option>
+              </select>
+            </div>
+            <div class="ham-field">
+              <label for="fCall">Callsign</label>
+              <input class="ham-input ham-mono" id="fCall" placeholder="N0CALL" autocapitalize="characters">
+              <span class="ham-field-help">Used in FT8 messages and the log</span>
+            </div>
+            <div class="ham-field">
+              <label for="fBw">Filter width</label>
+              <input class="ham-range" id="fBw" type="range" min="500" max="4000" step="100" value="2900">
+            </div>
+          </div>
+          <div class="ham-cluster" style="--ham-gap: 16px">
+            <label class="ham-check"><input type="checkbox" checked> Auto QSY</label>
+            <label class="ham-check"><input type="radio" name="slot" checked> Even slot</label>
+            <label class="ham-check"><input type="radio" name="slot"> Odd slot</label>
+            <label class="ham-switch"><input type="checkbox" checked> Hold Tx frequency</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="badges">
+      <h2>Badges &amp; lamps</h2>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-cluster">
+            <span class="ham-badge ham-badge-rx"><span class="ham-dot"></span>RX</span>
+            <span class="ham-badge ham-badge-tx"><span class="ham-dot"></span>TX</span>
+            <span class="ham-badge ham-badge-accent">FT8</span>
+            <span class="ham-badge ham-badge-mono">20m</span>
+            <span class="ham-badge ham-badge-warn">SWR 2.4</span>
+          </div>
+          <div class="ham-cluster" style="--ham-gap: 14px">
+            <span class="ham-lamp" data-on="true">NR</span>
+            <span class="ham-lamp" data-on="false">NB</span>
+            <span class="ham-lamp" data-on="true" data-tone="warn">ATT</span>
+            <span class="ham-lamp" data-on="true" data-tone="rx">LOCK</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="panels">
+      <h2>Panels</h2>
+      <p>The equivalent of Bootstrap's card. <code>.ham-panel-clip</code> clips canvases and tables inside to the rounded corners.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-panel">
+            <div class="ham-panel-head">
+              <h3 class="ham-panel-title">CAT connection</h3>
+              <span class="ham-badge ham-badge-rx"><span class="ham-dot"></span>Connected</span>
+            </div>
+            <div class="ham-panel-body ham-muted">/dev/ttyUSB0 · 19200 bps · CI-V 94h</div>
+            <div class="ham-panel-foot">
+              <button class="ham-btn ham-btn-ghost">Disconnect</button>
+              <button class="ham-btn ham-btn-primary">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="tabs">
+      <h2>Tabs</h2>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-tabs" data-ham="tabs">
+            <button role="tab" aria-controls="tabA" aria-selected="true">Band activity</button>
+            <button role="tab" aria-controls="tabB">Rx frequency</button>
+            <button role="tab" aria-controls="tabC">QSO log</button>
+          </div>
+          <div id="tabA" class="ham-tab-panel ham-muted">Decodes across the whole passband.</div>
+          <div id="tabB" class="ham-tab-panel ham-muted">Only decodes near the receive frequency.</div>
+          <div id="tabC" class="ham-tab-panel ham-muted">Completed contacts.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="tables">
+      <h2>Tables</h2>
+      <p>Numeric columns use <code>.ham-num</code> to right-align; <code>tr.is-highlight</code> colors the last column with the accent (for CQ calls, say).</p>
+      <div class="doc-example">
+        <div class="doc-preview is-flush">
+          <div class="ham-table-wrap">
+            <table class="ham-table ham-table-hover">
+              <thead><tr><th>UTC</th><th class="ham-num">dB</th><th class="ham-num">DT</th><th class="ham-num">Freq</th><th>Message</th></tr></thead>
+              <tbody class="ham-mono">
+                <tr class="is-highlight"><td>083015</td><td class="ham-num">-08</td><td class="ham-num">0.2</td><td class="ham-num">1432</td><td>CQ JA1XYZ PM95</td></tr>
+                <tr><td>083015</td><td class="ham-num">-15</td><td class="ham-num">0.1</td><td class="ham-num">874</td><td>K1ABC DL2XYZ JO62</td></tr>
+                <tr><td>083015</td><td class="ham-num">-21</td><td class="ham-num">-0.3</td><td class="ham-num">2210</td><td>VK3DEF ZL1GHI RR73</td></tr>
+                <tr class="is-active"><td>083030</td><td class="ham-num">-12</td><td class="ham-num">0.4</td><td class="ham-num">612</td><td>N0CALL HL2KKK PM37 -12</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="feedback">
+      <h2>Toasts, tooltips, dialogs</h2>
+      <p>Toasts with <code>HamUI.toast({title, body, tone, timeout})</code>; tooltips by adding <code>data-ham-tooltip</code> to any element; dialogs build on the native <code>&lt;dialog&gt;</code> and open from a button with <code>data-ham-open="#id"</code>.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-cluster">
+            <button class="ham-btn" id="toastInfo">Success toast</button>
+            <button class="ham-btn" id="toastWarn">Warning toast</button>
+            <button class="ham-btn" id="toastErr">Error toast (stays open)</button>
+            <button class="ham-btn" data-ham-tooltip="S9+10 · −63 dBm">Hover for a tooltip</button>
+            <button class="ham-btn ham-btn-primary" data-ham-open="#docDialog">Open dialog</button>
+          </div>
+          <dialog class="ham-modal" id="docDialog">
+            <div class="ham-modal-head">
+              <h3 class="ham-modal-title">Log QSO</h3>
+              <button class="ham-btn ham-btn-ghost ham-btn-sm ham-btn-icon" data-ham-close aria-label="Close">×</button>
+            </div>
+            <div class="ham-modal-body ham-stack">
+              <div class="ham-field"><label for="qCall">Callsign</label><input class="ham-input ham-mono" id="qCall" value="JA1XYZ"></div>
+              <div class="ham-field"><label for="qRst">RST</label><input class="ham-input ham-mono" id="qRst" value="-08"></div>
+            </div>
+            <div class="ham-modal-foot">
+              <button class="ham-btn ham-btn-ghost" data-ham-close>Cancel</button>
+              <button class="ham-btn ham-btn-primary" data-ham-close>Save</button>
+            </div>
+          </dialog>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="frequency">
+      <h2>Frequency display</h2>
+      <p>Scroll over a digit (or swipe up/down with two fingers on a trackpad) to tune that digit, or press and drag it up and down. When focused, ←/→ choose a digit, ↑/↓ change it, and typing a number overwrites it.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-vfo">
+            <span class="ham-vfo-tag is-active">A</span>
+            <div id="docFreq" data-ham="frequency" data-value="14074000" data-size="xl" data-unit="MHz" data-label="VFO A"></div>
+          </div>
+          <div class="ham-vfo">
+            <span class="ham-vfo-tag">B</span>
+            <div data-ham="frequency" data-value="14076000" data-label="VFO B"></div>
+          </div>
+          <div class="doc-log" id="docFreqLog"></div>
+        </div>
+      </div>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>value</td><td>14074000</td><td>Frequency in Hz</td></tr>
+        <tr><td>size</td><td>'md'</td><td>'sm' | 'md' | 'lg' | 'xl'</td></tr>
+        <tr><td>min / max</td><td>0 / 999999999</td><td>Tuning range</td></tr>
+        <tr><td>minPlace</td><td>0</td><td>Smallest tunable digit; 1 means 10 Hz steps</td></tr>
+        <tr><td>unit</td><td>null</td><td>Unit label after the digits</td></tr>
+        <tr><td>set(hz) / get()</td><td></td><td>Emits <code>ham:change {hz, source}</code></td></tr>
+      </tbody></table>
+    </section>
+
+    <section class="doc-section" id="meters">
+      <h2>Meters</h2>
+      <p>Presets for an S-meter (dBm in; S9 = −73 dBm, or −93 dBm with <code>data-vhf</code>), power, SWR (non-linear scale) and ALC, plus custom scales. Peak hold is built in; use <code>setOff()</code> to dim the meters that don't apply when switching between receive and transmit.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-meters" style="max-width: 420px">
+            <div id="docS" data-ham="meter" data-type="s"></div>
+            <div id="docP" data-ham="meter" data-type="power" data-max="100"></div>
+            <div id="docSwr" data-ham="meter" data-type="swr"></div>
+            <div id="docAlc" data-ham="meter" data-type="alc"></div>
+            <div data-ham="meter" data-type="custom" data-label="VDD" data-min="10" data-max="16" data-unit="V" data-value="13.8" data-segments="0"></div>
+          </div>
+        </div>
+      </div>
+      <pre><code>const s = new HamUI.Meter('#s', { type: 's' });
+s.set(-63);                 // "S9+10 -63"
+pwr.setOff(true);           // dim while receiving</code></pre>
+    </section>
+
+    <section class="doc-section" id="spectrum">
+      <h2>Spectrum</h2>
+      <p>Feed it frames of dB values covering <code>startHz … startHz + spanHz</code>; it handles averaging, peak hold, the grid, the frequency axis, the passband and the dial line. A click emits a cancelable <code>ham:tune</code> event. The data below comes from the built-in <code>SignalSimulator</code> (20 m FT8 segment).</p>
+      <div class="doc-example">
+        <div class="doc-preview is-flush">
+          <div id="docSpectrum" data-ham="spectrum" data-start-hz="14069500" data-span-hz="12000" data-min-db="-130" data-max-db="-60"></div>
+        </div>
+        <pre><code>&lt;div id="spec" data-ham="spectrum" data-start-hz="14069500" data-span-hz="12000"&gt;&lt;/div&gt;
+
+const spec = HamUI.getInstance('#spec');
+spec.setDial(14074000);
+spec.setPassband(HamUI.passbandFor('USB', 2900));    // [100, 3000]
+spec.setMarkers([{ hz: 14078000, color: 'warn', dashed: true, label: 'JS8' }]);
+spec.on('tune', e =&gt; rig.setFrequency(e.detail.hz));
+setInterval(() =&gt; spec.update(getFftFrame()), 50);</code></pre>
+      </div>
+      <div class="doc-log" id="docSpecLog"></div>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>startHz / spanHz</td><td>— / 48000</td><td>Frequency range covered by the input bins (or use centerHz)</td></tr>
+        <tr><td>minDb / maxDb</td><td>-130 / -50</td><td>Vertical scale; change with <code>setLevels()</code></td></tr>
+        <tr><td>averaging</td><td>0.35</td><td>Weight of each new frame; 1 = no averaging</td></tr>
+        <tr><td>peakHold / peakDecay</td><td>true / 0.15</td><td>Peak trace and its fall per frame in dB</td></tr>
+        <tr><td>tuneStep</td><td>10</td><td>Click-to-tune rounding in Hz</td></tr>
+        <tr><td>minSpan</td><td>100</td><td>Span at maximum zoom in Hz</td></tr>
+        <tr><td>view</td><td>null</td><td>A shared <code>FrequencyView</code> for linked zooming</td></tr>
+      </tbody></table>
+    </section>
+
+    <section class="doc-section" id="waterfall">
+      <h2>Waterfall</h2>
+      <p>Each <code>push()</code> adds a row at the top. The color map follows the theme by default (<code>theme</code>); viridis, inferno, plasma, turbo and gray are built in, or pass an array of colors. <code>autoLevel()</code> sets the contrast from the history.</p>
+      <div class="doc-example">
+        <div class="doc-preview is-flush">
+          <div class="ham-scope-bar">
+            <span class="ham-label">Colormap</span>
+            <div class="ham-seg ham-seg-sm" id="wfMap" data-ham="segmented" data-items='["theme","viridis","inferno","plasma","turbo","gray"]' data-value="theme"></div>
+          </div>
+          <div id="docWaterfall" data-ham="waterfall" data-start-hz="14069500" data-span-hz="12000" style="height: 180px"></div>
+        </div>
+        <pre><code>const wf = new HamUI.Waterfall('#wf', { startHz, spanHz, rows: 256, minDb: -125, maxDb: -75 });
+wf.push(frame);
+wf.setColormap('viridis');   // 'theme' | 'viridis' | 'inferno' | 'plasma' | 'turbo' | 'gray' | ['#000', '#0af', '#fff']
+wf.autoLevel();</code></pre>
+      </div>
+    </section>
+
+    <section class="doc-section" id="panadapter">
+      <h2>Panadapter</h2>
+      <p>A spectrum above a waterfall sharing one <code>FrequencyView</code>, so zoom, pan and tuning always line up. <code>HamUI.linkView(spectrum, waterfall)</code> links any two components by hand.</p>
+      <div class="doc-example">
+        <div class="doc-preview is-flush">
+          <div class="ham-scope-bar">
+            <span class="ham-label">Panadapter</span>
+            <span class="ham-faint ham-text-sm">Pinch to zoom · swipe sideways to pan · click to tune · double-click to reset</span>
+            <span class="ham-spacer"></span>
+            <button class="ham-btn ham-btn-sm ham-btn-icon" id="panZoomOut" aria-label="Zoom out">−</button>
+            <span class="ham-scope-span" id="docPanSpan">12.0 kHz</span>
+            <button class="ham-btn ham-btn-sm ham-btn-icon" id="panZoomIn" aria-label="Zoom in">+</button>
+            <button class="ham-btn ham-btn-sm" id="panReset">Reset</button>
+          </div>
+          <div id="docPan" data-ham="panadapter" data-start-hz="14069500" data-span-hz="12000" data-min-db="-130" data-max-db="-60" data-min-span="300"></div>
+        </div>
+        <pre><code>&lt;div id="pan" data-ham="panadapter" data-start-hz="14069500" data-span-hz="12000"&gt;&lt;/div&gt;
+
+const pan = HamUI.getInstance('#pan');
+pan.push(frame);                       // updates both views
+pan.view.zoomAt(2, 14074000);          // zoom from code
+pan.on('viewchange', e =&gt; …);          // {start, span, zoom}</code></pre>
+      </div>
+      <div class="doc-log" id="docPanLog"></div>
+    </section>
+
+    <section class="doc-section" id="gestures">
+      <h2>Gestures</h2>
+      <p>Spectrum, Waterfall and Panadapter share one set of gestures (<code>HamUI.attachScopeGestures</code> is available for your own components). Vertical scrolling is never captured, so the page still scrolls.</p>
+      <div class="ham-table-wrap">
+        <table class="ham-table">
+          <thead><tr><th>Input</th><th>Gesture</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td>Trackpad</td><td>Pinch</td><td>Zoom around the pointer (ctrl+wheel in Chrome/Edge/Firefox, gesture events in Safari)</td></tr>
+            <tr><td>Trackpad</td><td>Two-finger horizontal swipe</td><td>Pan</td></tr>
+            <tr><td>Mouse</td><td>Ctrl/⌘ + wheel · Shift + wheel</td><td>Zoom · pan</td></tr>
+            <tr><td>Mouse / touch</td><td>Drag</td><td>Pan</td></tr>
+            <tr><td>Mouse / touch</td><td>Click · double-click</td><td>Tune · reset view</td></tr>
+            <tr><td>Touch</td><td>Two-finger pinch</td><td>Zoom + pan</td></tr>
+            <tr><td>Keyboard</td><td>← → · + − · Home</td><td>Pan · zoom · reset</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="doc-section" id="knob">
+      <h2>Knob</h2>
+      <p>Drag up and down, scroll, or use the arrow keys. Double-click returns to the default value.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-cluster" style="--ham-gap: 20px" id="docKnobs">
+            <div data-ham="knob" data-label="AF" data-value="42"></div>
+            <div data-ham="knob" data-label="RF" data-value="100"></div>
+            <div data-ham="knob" data-label="SQL" data-value="0"></div>
+            <div data-ham="knob" data-label="PWR" data-min="5" data-max="100" data-value="50" data-unit="W"></div>
+            <div data-ham="knob" data-label="NR" data-min="0" data-max="15" data-value="6" data-size="sm"></div>
+          </div>
+          <div class="doc-log" id="docKnobLog"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="selectors">
+      <h2>Band &amp; mode</h2>
+      <p>Band data lives in <code>HamUI.bands</code> (edges and the default FT8 frequency); <code>passbandFor(mode, width)</code> returns the passband relative to the dial.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div id="docBand" data-ham="band-selector" data-value="20m"></div>
+          <div id="docMode" data-ham="mode-selector" data-value="USB"></div>
+          <div class="doc-log"><span id="docBandLog"></span> <span id="docModeLog"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="station">
+      <h2>Station status</h2>
+      <p>A status bar, a TX/RX indicator (steady colors, no blinking), a UTC clock and a hold-to-transmit PTT button (the space bar works too).</p>
+      <div class="doc-example">
+        <div class="doc-preview is-flush">
+          <div class="ham-statusbar">
+            <span id="docTrx" data-ham="trx"></span>
+            <span class="ham-kv">Call <b>N0CALL</b></span>
+            <span class="ham-kv">Grid <b>PM95</b></span>
+            <span class="ham-spacer"></span>
+            <span class="ham-kv">UTC <b><time data-ham="clock"></time></b></span>
+          </div>
+          <div class="ham-p-4">
+            <button id="docPtt" data-ham="ptt" class="ham-btn-lg"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="api">
+      <h2>JS API</h2>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>HamUI.init(root?)</td><td></td><td>Set up every [data-ham] element under root; safe to call again</td></tr>
+        <tr><td>HamUI.getInstance(el)</td><td></td><td>The component instance attached to an element</td></tr>
+        <tr><td>instance.on(name, fn)</td><td></td><td>Listen for <code>ham:name</code>; returns an unsubscribe function</td></tr>
+        <tr><td>instance.destroy()</td><td></td><td>Remove listeners and canvases</td></tr>
+        <tr><td>FrequencyView</td><td></td><td>start, span, zoomAt(f, hz), pan(hz), centerOn(hz), reveal(hz), reset(), subscribe(fn)</td></tr>
+        <tr><td>SignalSimulator</td><td></td><td>next(t) → Float32Array; power(lo, hi) → dBm; for demos and tests</td></tr>
+        <tr><td>HamUI.format</td><td></td><td>groupHz, formatHz, formatSpan, parseFrequency, dbmToS, sToDbm, niceStep</td></tr>
+      </tbody></table>
+      <h3>Events</h3>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>ham:tune</td><td>{hz}</td><td>Click-to-tune on Spectrum / Waterfall; preventDefault keeps the dial where it is</td></tr>
+        <tr><td>ham:viewchange</td><td>{start, span, zoom}</td><td>Zoom or pan</td></tr>
+        <tr><td>ham:hover</td><td>{hz}</td><td>Frequency under the pointer</td></tr>
+        <tr><td>ham:change</td><td>{value | hz, source}</td><td>FrequencyDisplay, Knob, Segmented, Band/ModeSelector, Tabs</td></tr>
+        <tr><td>ham:ptt</td><td>{on}</td><td>PTT pressed / released</td></tr>
+        <tr><td>ham:themechange</td><td>{theme}</td><td>Dispatched on document</td></tr>
+      </tbody></table>
+    </section>
+  </main>
+</div>
+<script type="module" src="./docs/docs.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+.ham-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--ham-border);
+  border-radius: var(--ham-radius-sm);
+  background: var(--ham-surface-2);
+  color: var(--ham-fg-muted);
+  font: 500 var(--ham-text-xs) var(--ham-font-ui);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.ham-badge-accent { background: var(--ham-accent-weak); border-color: transparent; color: var(--ham-accent); }
+.ham-badge-rx { background: color-mix(in srgb, var(--ham-rx) 12%, transparent); border-color: transparent; color: var(--ham-rx); }
+.ham-badge-tx { background: color-mix(in srgb, var(--ham-tx) 12%, transparent); border-color: transparent; color: var(--ham-tx); }
+.ham-badge-warn { background: color-mix(in srgb, var(--ham-warn) 12%, transparent); border-color: transparent; color: var(--ham-warn); }
+.ham-badge-mono { font-family: var(--ham-font-mono); }
+
+.ham-dot { width: 6px; height: 6px; flex: none; border-radius: 50%; background: currentColor; }

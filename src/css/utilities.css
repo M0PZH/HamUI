@@ -1,0 +1,58 @@
+/* Text */
+.ham-mono { font-family: var(--ham-font-mono); font-variant-numeric: tabular-nums; }
+.ham-tabular { font-variant-numeric: tabular-nums; }
+.ham-muted { color: var(--ham-fg-muted); }
+.ham-faint { color: var(--ham-fg-faint); }
+.ham-text-accent { color: var(--ham-accent); }
+.ham-text-rx { color: var(--ham-rx); }
+.ham-text-tx { color: var(--ham-tx); }
+.ham-text-warn { color: var(--ham-warn); }
+.ham-text-xs { font-size: var(--ham-text-xs); }
+.ham-text-sm { font-size: var(--ham-text-sm); }
+.ham-text-lg { font-size: var(--ham-text-lg); }
+.ham-label {
+  font-size: var(--ham-text-xs);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ham-fg-faint);
+}
+.ham-lede { color: var(--ham-fg-muted); max-width: 65ch; }
+.ham-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Display / flex */
+.ham-flex { display: flex; }
+.ham-inline-flex { display: inline-flex; }
+.ham-block { display: block; }
+.ham-none { display: none; }
+.ham-flex-col { flex-direction: column; }
+.ham-wrap { flex-wrap: wrap; }
+.ham-items-center { align-items: center; }
+.ham-items-end { align-items: flex-end; }
+.ham-justify-between { justify-content: space-between; }
+.ham-grow { flex: 1 1 0; min-width: 0; }
+.ham-w-full { width: 100%; }
+
+/* Gap / padding / margin on the 4px scale (1–6) */
+.ham-gap-1 { gap: var(--ham-space-1); } .ham-gap-2 { gap: var(--ham-space-2); }
+.ham-gap-3 { gap: var(--ham-space-3); } .ham-gap-4 { gap: var(--ham-space-4); }
+.ham-gap-5 { gap: var(--ham-space-5); } .ham-gap-6 { gap: var(--ham-space-6); }
+.ham-p-0 { padding: 0; }
+.ham-p-2 { padding: var(--ham-space-2); } .ham-p-3 { padding: var(--ham-space-3); }
+.ham-p-4 { padding: var(--ham-space-4); } .ham-p-5 { padding: var(--ham-space-5); }
+.ham-m-0 { margin: 0; }
+.ham-mt-2 { margin-top: var(--ham-space-2); } .ham-mt-4 { margin-top: var(--ham-space-4); }
+.ham-mb-2 { margin-bottom: var(--ham-space-2); } .ham-mb-4 { margin-bottom: var(--ham-space-4); }
+
+/* Surfaces */
+.ham-bg-surface { background: var(--ham-surface); }
+.ham-bg-inset { background: var(--ham-inset); }
+.ham-border { border: 1px solid var(--ham-border); }
+.ham-rounded { border-radius: var(--ham-radius-md); }
+
+.ham-visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0; padding: 0; margin: -1px;
+}

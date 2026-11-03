@@ -1,0 +1,38 @@
+/* Segmented control: one choice among a few. Used by band & mode selectors. */
+.ham-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  background: var(--ham-inset);
+  border: 1px solid var(--ham-border);
+  border-radius: var(--ham-radius-md);
+  max-width: 100%;
+}
+.ham-seg > button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ham-fg-muted);
+  font: 500 var(--ham-text-sm) var(--ham-font-ui);
+  min-height: calc(var(--ham-hit) - 6px);
+  padding: 0 10px;
+  border-radius: var(--ham-radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background var(--ham-duration), color var(--ham-duration);
+}
+.ham-seg > button:hover { color: var(--ham-fg); }
+.ham-seg > button[aria-pressed="true"],
+.ham-seg > button[aria-checked="true"] {
+  background: var(--ham-surface-2);
+  color: var(--ham-fg);
+  box-shadow: inset 0 0 0 1px var(--ham-border-strong);
+}
+.ham-seg > button:disabled { opacity: 0.4; cursor: not-allowed; }
+.ham-seg-mono > button { font-family: var(--ham-font-mono); }
+.ham-seg-sm > button { min-height: calc(var(--ham-hit-sm) - 6px); padding: 0 8px; font-size: var(--ham-text-xs); }
+.ham-seg-block { display: flex; }
+.ham-seg-block > button { flex: 1; }

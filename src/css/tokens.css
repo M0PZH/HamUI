@@ -1,0 +1,150 @@
+/* HamUI design tokens.
+ * Dark is the default. Set data-theme="light" (or "auto" to follow the OS)
+ * on <html> or on any subtree to switch. Canvas components read these
+ * tokens at draw time and repaint on theme change. */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* surfaces */
+  --ham-bg: #0d0f13;
+  --ham-surface: #14171d;
+  --ham-surface-2: #1a1e26;
+  --ham-inset: #0a0c10;
+  --ham-border: #252a34;
+  --ham-border-strong: #323845;
+
+  /* text */
+  --ham-fg: #e3e6eb;
+  --ham-fg-muted: #8a92a1;
+  --ham-fg-faint: #596171;
+
+  /* accent (one only) */
+  --ham-accent: #5aaee3;
+  --ham-accent-fg: #06121c;
+  --ham-accent-weak: rgba(90, 174, 227, 0.14);
+  --ham-accent-line: rgba(90, 174, 227, 0.45);
+
+  /* semantic */
+  --ham-rx: #4cb87a;
+  --ham-tx: #e0574f;
+  --ham-warn: #d6a244;
+
+  /* instrument drawing */
+  --ham-grid: rgba(255, 255, 255, 0.055);
+  --ham-trace: var(--ham-accent);
+  --ham-trace-fill: rgba(90, 174, 227, 0.16);
+  --ham-peak: rgba(227, 230, 235, 0.22);
+  --ham-passband: var(--ham-accent-weak);
+  --ham-dial: var(--ham-fg);
+  --ham-wf-0: #0a0c10;
+  --ham-wf-1: #10213a;
+  --ham-wf-2: #17558c;
+  --ham-wf-3: #4aa3dc;
+  --ham-wf-4: #e9f5ff;
+
+  --ham-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  --ham-backdrop: rgba(5, 6, 8, 0.6);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --ham-bg: #f4f5f7;
+  --ham-surface: #ffffff;
+  --ham-surface-2: #f0f2f5;
+  --ham-inset: #f7f8fa;
+  --ham-border: #dfe2e8;
+  --ham-border-strong: #c8cdd6;
+  --ham-fg: #14171c;
+  --ham-fg-muted: #596171;
+  --ham-fg-faint: #8a92a1;
+  --ham-accent: #1c78b8;
+  --ham-accent-fg: #ffffff;
+  --ham-accent-weak: rgba(28, 120, 184, 0.1);
+  --ham-accent-line: rgba(28, 120, 184, 0.5);
+  --ham-rx: #2a9459;
+  --ham-tx: #cc3a32;
+  --ham-warn: #b37b16;
+  --ham-grid: rgba(0, 0, 0, 0.06);
+  --ham-trace-fill: rgba(28, 120, 184, 0.12);
+  --ham-peak: rgba(20, 23, 28, 0.22);
+  --ham-wf-0: #ffffff;
+  --ham-wf-1: #dbe9f5;
+  --ham-wf-2: #7fb3dc;
+  --ham-wf-3: #2370ad;
+  --ham-wf-4: #0b2a48;
+  --ham-shadow: 0 6px 20px rgba(20, 23, 28, 0.12);
+  --ham-backdrop: rgba(20, 23, 28, 0.35);
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    color-scheme: light;
+    --ham-bg: #f4f5f7;
+    --ham-surface: #ffffff;
+    --ham-surface-2: #f0f2f5;
+    --ham-inset: #f7f8fa;
+    --ham-border: #dfe2e8;
+    --ham-border-strong: #c8cdd6;
+    --ham-fg: #14171c;
+    --ham-fg-muted: #596171;
+    --ham-fg-faint: #8a92a1;
+    --ham-accent: #1c78b8;
+    --ham-accent-fg: #ffffff;
+    --ham-accent-weak: rgba(28, 120, 184, 0.1);
+    --ham-accent-line: rgba(28, 120, 184, 0.5);
+    --ham-rx: #2a9459;
+    --ham-tx: #cc3a32;
+    --ham-warn: #b37b16;
+    --ham-grid: rgba(0, 0, 0, 0.06);
+    --ham-trace-fill: rgba(28, 120, 184, 0.12);
+    --ham-peak: rgba(20, 23, 28, 0.22);
+    --ham-wf-0: #ffffff;
+    --ham-wf-1: #dbe9f5;
+    --ham-wf-2: #7fb3dc;
+    --ham-wf-3: #2370ad;
+    --ham-wf-4: #0b2a48;
+    --ham-shadow: 0 6px 20px rgba(20, 23, 28, 0.12);
+    --ham-backdrop: rgba(20, 23, 28, 0.35);
+  }
+}
+
+/* Theme-independent tokens */
+:root {
+  --ham-font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ham-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --ham-text-xs: 11px;
+  --ham-text-sm: 12px;
+  --ham-text-md: 13px;
+  --ham-text-base: 14px;
+  --ham-text-lg: 16px;
+  --ham-text-xl: 20px;
+  --ham-text-2xl: 28px;
+
+  --ham-space-1: 4px;
+  --ham-space-2: 8px;
+  --ham-space-3: 12px;
+  --ham-space-4: 16px;
+  --ham-space-5: 24px;
+  --ham-space-6: 32px;
+  --ham-space-7: 48px;
+
+  --ham-radius-sm: 4px;
+  --ham-radius-md: 6px;
+  --ham-radius-lg: 8px;
+
+  /* minimum hit target; grows on touch screens */
+  --ham-hit: 30px;
+  --ham-hit-sm: 24px;
+
+  --ham-duration: 120ms;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --ham-hit: 44px;
+    --ham-hit-sm: 36px;
+  }
+}

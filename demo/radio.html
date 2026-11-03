@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>HamUI Radio Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="../src/css/hamui.css">
+  <style>
+    /* Page layout only — every control below is a stock HamUI component. */
+    .page { padding-block: var(--ham-space-5) var(--ham-space-7); display: flex; flex-direction: column; gap: var(--ham-space-4); }
+    .radio {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 380px);
+      grid-template-areas: "vfo meters" "scope scope" "ctl ctl";
+    }
+    .radio > .vfo { grid-area: vfo; padding: var(--ham-space-4) var(--ham-space-5); border-right: 1px solid var(--ham-border); display: flex; flex-direction: column; gap: var(--ham-space-3); min-width: 0; }
+    .radio > .meters { grid-area: meters; padding: var(--ham-space-4) var(--ham-space-5); justify-content: center; }
+    .radio > .scope { grid-area: scope; border-top: 1px solid var(--ham-border); min-width: 0; }
+    .radio > .ctl { grid-area: ctl; border-top: 1px solid var(--ham-border); padding: var(--ham-space-4) var(--ham-space-5); display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--ham-space-5) var(--ham-space-6); }
+    .ctl-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    @media (max-width: 820px) {
+      .radio { grid-template-columns: minmax(0, 1fr); grid-template-areas: "vfo" "meters" "scope" "ctl"; }
+      .radio > .vfo { border-right: 0; border-bottom: 1px solid var(--ham-border); padding: var(--ham-space-4); }
+      .radio > .meters, .radio > .ctl { padding: var(--ham-space-4); }
+    }
+  </style>
+</head>
+<body>
+<div class="ham-container page">
+  <div class="ham-cluster">
+    <h1 style="font-size: 20px">Radio panel</h1>
+    <span class="ham-faint ham-text-sm">Simulated signals · every control works</span>
+    <span class="ham-spacer"></span>
+    <a class="ham-btn ham-btn-ghost ham-btn-sm" href="../index.html">Docs</a>
+    <a class="ham-btn ham-btn-ghost ham-btn-sm" href="../playground.html">Playground</a>
+    <button class="ham-btn ham-btn-sm" id="themeBtn">Toggle theme</button>
+  </div>
+
+  <div class="ham-panel ham-panel-clip">
+    <div class="ham-statusbar">
+      <span id="trx" data-ham="trx"></span>
+      <span class="ham-kv">Call <b>N0CALL</b></span>
+      <span class="ham-kv">Grid <b>PM95</b></span>
+      <span class="ham-kv">Band <b id="sbBand">20m</b></span>
+      <span class="ham-lamp" id="lampNb" data-on="false">NB</span>
+      <span class="ham-lamp" id="lampNr" data-on="true">NR</span>
+      <span class="ham-lamp" id="lampAtt" data-on="false" data-tone="warn">ATT</span>
+      <span class="ham-spacer"></span>
+      <span class="ham-kv">UTC <b><time data-ham="clock"></time></b></span>
+    </div>
+
+    <div class="radio">
+      <div class="vfo">
+        <div class="ham-vfo">
+          <span class="ham-vfo-tag is-active">A</span>
+          <div id="vfoA" data-ham="frequency" data-value="14074000" data-size="xl" data-unit="MHz" data-label="VFO A"></div>
+        </div>
+        <div class="ham-vfo">
+          <span class="ham-vfo-tag">B</span>
+          <div id="vfoB" data-ham="frequency" data-value="14076000" data-label="VFO B"></div>
+          <span class="ham-spacer"></span>
+          <div class="ham-btn-group">
+            <button class="ham-btn ham-btn-sm" id="swapAB">A/B</button>
+            <button class="ham-btn ham-btn-sm" id="aEqB">A=B</button>
+            <button class="ham-btn ham-btn-sm" id="splitBtn" aria-pressed="false">Split</button>
+          </div>
+        </div>
+        <div class="ham-cluster">
+          <span class="ham-badge ham-badge-accent" id="modeBadge">USB</span>
+          <span class="ham-badge" id="bwBadge">BW 2.9 kHz</span>
+          <span class="ham-badge" id="agcBadge">AGC Mid</span>
+          <span class="ham-badge ham-badge-warn" id="splitBadge" hidden>SPLIT</span>
+        </div>
+      </div>
+
+      <div class="meters ham-meters">
+        <div id="mS" data-ham="meter" data-type="s"></div>
+        <div id="mP" data-ham="meter" data-type="power" data-off></div>
+        <div id="mSwr" data-ham="meter" data-type="swr" data-off></div>
+        <div id="mAlc" data-ham="meter" data-type="alc" data-off></div>
+      </div>
+
+      <div class="scope">
+        <div class="ham-scope-bar">
+          <span class="ham-label">Spectrum</span>
+          <span class="ham-faint ham-text-sm" id="hint">Pinch to zoom · swipe sideways to pan · click to tune · double-click to reset</span>
+          <span class="ham-spacer"></span>
+          <select class="ham-select ham-input-sm" id="cmap" aria-label="Waterfall colormap" style="width: auto">
+            <option value="theme">Theme</option>
+            <option value="viridis">Viridis</option>
+            <option value="inferno">Inferno</option>
+            <option value="plasma">Plasma</option>
+            <option value="turbo">Turbo</option>
+            <option value="gray">Gray</option>
+          </select>
+          <button class="ham-btn ham-btn-sm" id="peakBtn" aria-pressed="true">Peak</button>
+          <button class="ham-btn ham-btn-sm" id="avgBtn" aria-pressed="true">Avg</button>
+          <button class="ham-btn ham-btn-sm ham-btn-icon" id="zoomOut" aria-label="Zoom out">−</button>
+          <span class="ham-scope-span" id="spanRead">12.0 kHz</span>
+          <button class="ham-btn ham-btn-sm ham-btn-icon" id="zoomIn" aria-label="Zoom in">+</button>
+          <button class="ham-btn ham-btn-sm" id="zoomReset">Reset</button>
+        </div>
+        <div id="pan" data-ham="panadapter" data-span-hz="12000" data-start-hz="14069500" data-min-db="-128" data-max-db="-60" data-min-span="300" data-label="Spectrum and waterfall"></div>
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-group"><span class="ham-label">Band</span><div id="band" data-ham="band-selector" data-value="20m"></div></div>
+        <div class="ctl-group"><span class="ham-label">Mode</span><div id="mode" data-ham="mode-selector" data-value="USB"></div></div>
+        <div class="ctl-group"><span class="ham-label">AGC</span><div class="ham-seg" id="agc" data-ham="segmented" data-items='["Off","Fast","Mid","Slow"]' data-value="Mid"></div></div>
+        <div class="ctl-group" style="width: min(100%, 200px)">
+          <label class="ham-label" for="bw">Filter <span class="ham-mono ham-muted" id="bwRead">2.9 kHz</span></label>
+          <input class="ham-range" id="bw" type="range" min="500" max="4000" step="100" value="2900">
+        </div>
+        <div class="ctl-group">
+          <span class="ham-label">DSP</span>
+          <div class="ham-cluster" style="--ham-gap: 14px">
+            <label class="ham-switch"><input type="checkbox" id="nb"> NB</label>
+            <label class="ham-switch"><input type="checkbox" id="nr" checked> NR</label>
+            <label class="ham-switch"><input type="checkbox" id="att"> ATT</label>
+          </div>
+        </div>
+        <div class="ham-cluster" style="--ham-gap: 16px">
+          <div data-ham="knob" data-label="AF" data-value="42"></div>
+          <div data-ham="knob" data-label="RF" data-value="100"></div>
+          <div data-ham="knob" data-label="SQL" data-value="0"></div>
+          <div id="pwrKnob" data-ham="knob" data-label="PWR" data-min="5" data-max="100" data-value="50" data-unit="W"></div>
+        </div>
+        <span class="ham-spacer"></span>
+        <button id="ptt" data-ham="ptt" class="ham-btn-lg"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import HamUI from '../src/js/index.js';
+
+HamUI.init();
+const $ = (s) => document.querySelector(s);
+const get = (s) => HamUI.getInstance(s);
+
+const vfoA = get('#vfoA'), vfoB = get('#vfoB');
+const pan = get('#pan'), band = get('#band'), mode = get('#mode'), agc = get('#agc');
+const trx = get('#trx'), ptt = get('#ptt'), pwrKnob = get('#pwrKnob');
+const M = { s: get('#mS'), p: get('#mP'), swr: get('#mSwr'), alc: get('#mAlc') };
+
+const S = { mode: 'USB', bw: 2900, split: false, tx: false, agc: 'Mid' };
+const sim = new HamUI.SignalSimulator({ startHz: 14069500, spanHz: 12000, bins: 2048 });
+
+$('#themeBtn').onclick = () => HamUI.theme.toggle();
+if (matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'Pinch to zoom · drag to pan · tap to tune';
+
+/* ---- tuning ---- */
+function passband() { return HamUI.passbandFor(S.mode, S.mode === 'FM' || S.mode === 'AM' ? undefined : S.bw); }
+
+function applyDial() {
+  const hz = vfoA.get();
+  // keep the simulated window around the dial
+  if (hz < sim.startHz + 500 || hz > sim.startHz + sim.spanHz - 500) sim.setRange(hz - 4500);
+  pan.setDataRange(sim.startHz, sim.spanHz);
+  pan.setDial(hz);
+  pan.view.reveal(hz);
+  band.follow(hz);
+  $('#sbBand').textContent = band.value || '—';
+  updateMarkers();
+}
+
+function updateMarkers() {
+  pan.setMarkers(S.split ? [{ hz: vfoB.get(), color: 'tx', dashed: true, label: 'TX' }] : []);
+}
+
+function updateBadges() {
+  const [lo, hi] = passband();
+  $('#modeBadge').textContent = S.mode;
+  $('#bwBadge').textContent = `BW ${((hi - lo) / 1000).toFixed(1)} kHz`;
+  $('#bwRead').textContent = `${(S.bw / 1000).toFixed(1)} kHz`;
+  $('#agcBadge').textContent = `AGC ${S.agc}`;
+  pan.setPassband(passband());
+}
+
+vfoA.on('change', applyDial);
+vfoB.on('change', updateMarkers);
+pan.on('tune', (e) => { vfoA.set(e.detail.hz, { silent: true }); applyDial(); });
+pan.on('viewchange', (e) => { $('#spanRead').textContent = HamUI.format.formatSpan(e.detail.span); });
+
+band.on('change', (e) => {
+  if (!e.detail.band) return;
+  sim.setRange(e.detail.band.dial - 4500);
+  pan.setDataRange(sim.startHz, sim.spanHz);
+  pan.view.reset();
+  vfoA.set(e.detail.band.dial, { silent: true });
+  applyDial();
+});
+mode.on('change', (e) => { S.mode = e.detail.value; updateBadges(); });
+agc.on('change', (e) => { S.agc = e.detail.value; updateBadges(); });
+$('#bw').addEventListener('input', (e) => { S.bw = +e.target.value; updateBadges(); });
+
+$('#swapAB').onclick = () => { const a = vfoA.get(); vfoA.set(vfoB.get(), { silent: true }); vfoB.set(a, { silent: true }); applyDial(); };
+$('#aEqB').onclick = () => { vfoB.set(vfoA.get(), { silent: true }); updateMarkers(); };
+$('#splitBtn').onclick = (e) => {
+  S.split = !S.split;
+  e.currentTarget.setAttribute('aria-pressed', S.split);
+  $('#splitBadge').hidden = !S.split;
+  updateMarkers();
+};
+
+/* ---- DSP ---- */
+const lamp = (id, on) => { $(id).dataset.on = on; };
+$('#nb').onchange = (e) => lamp('#lampNb', e.target.checked);
+$('#nr').onchange = (e) => lamp('#lampNr', e.target.checked);
+$('#att').onchange = (e) => { lamp('#lampAtt', e.target.checked); sim.attenuation = e.target.checked ? 12 : 0; };
+
+/* ---- scope toolbar ---- */
+$('#peakBtn').onclick = (e) => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', on); pan.spectrum.setPeakHold(on); };
+$('#avgBtn').onclick = (e) => { const on = e.currentTarget.getAttribute('aria-pressed') !== 'true'; e.currentTarget.setAttribute('aria-pressed', on); pan.spectrum.setAveraging(on ? 0.35 : 1); };
+$('#zoomIn').onclick = () => pan.view.zoomAt(1.6, vfoA.get());
+$('#zoomOut').onclick = () => pan.view.zoomAt(1 / 1.6, vfoA.get());
+$('#zoomReset').onclick = () => pan.view.reset();
+$('#cmap').onchange = (e) => pan.waterfall.setColormap(e.target.value);
+
+/* ---- TX ---- */
+let txRamp = 0;
+ptt.on('ptt', (e) => {
+  S.tx = e.detail.on;
+  trx.set(S.tx ? 'tx' : 'rx');
+  vfoA.setTx(S.tx && !S.split);
+  vfoB.setTx(S.tx && S.split);
+  M.s.setOff(S.tx, M.s.valueEl.textContent);
+  for (const m of [M.p, M.swr, M.alc]) m.setOff(!S.tx);
+  txRamp = 0;
+});
+
+/* ---- loop ---- */
+let level = -120;
+function tick() {
+  const frame = sim.next();
+  pan.push(frame, sim.range);
+
+  if (S.tx) {
+    txRamp = Math.min(1, txRamp + 0.2);
+    const now = performance.now();
+    const wob = 0.85 + 0.15 * Math.sin(now / 90) * Math.sin(now / 37);
+    M.p.set(pwrKnob.get() * txRamp * wob);
+    M.swr.set(1.3);
+    M.alc.set((25 + 12 * wob) * txRamp);
+    return;
+  }
+  const [lo, hi] = passband();
+  const dial = vfoA.get();
+  const dbm = sim.power(dial + lo, dial + hi) - ($('#nr').checked ? 2 : 0);
+  const decay = { Off: 1, Fast: 0.25, Mid: 0.1, Slow: 0.05 }[S.agc];
+  level += (dbm - level) * (dbm > level ? 0.6 : decay);
+  M.s.set(level);
+}
+
+// fill the waterfall history before the first paint
+const t0 = Date.now();
+for (let i = 240; i > 0; i--) pan.waterfall.push(sim.next(t0 - i * 50), sim.range);
+updateBadges();
+applyDial();
+setInterval(tick, 50);
+</script>
+</body>
+</html>
