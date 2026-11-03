@@ -15,6 +15,7 @@
     <a class="doc-brand" href="#">HamUI <small>v0.1.0</small></a>
     <span class="ham-spacer"></span>
     <a class="ham-btn ham-btn-ghost ham-btn-sm" href="./demo/radio.html">Radio demo</a>
+    <a class="ham-btn ham-btn-ghost ham-btn-sm" href="./demo/datv.html">DATV demo</a>
     <a class="ham-btn ham-btn-ghost ham-btn-sm" href="./playground.html">Playground</a>
     <a class="ham-btn ham-btn-ghost ham-btn-sm" href="https://github.com/M0PZH/HamUI">GitHub</a>
     <div class="ham-seg ham-seg-sm" id="themeSeg" data-ham="segmented" data-label="Theme">
@@ -50,6 +51,7 @@
     <a href="#knob">Knob</a>
     <a href="#selectors">Band &amp; mode</a>
     <a href="#station">Station status</a>
+    <a href="#datv">DVB-S2 / DATV</a>
     <span class="ham-label">Reference</span>
     <a href="#api">JS API</a>
   </nav>
@@ -478,6 +480,61 @@ pan.on('viewchange', e =&gt; …);          // {start, span, zoom}</code></pre>
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="doc-section" id="datv">
+      <h2>DVB-S2 / DATV</h2>
+      <p>Components for digital ATV receivers such as those used on the QO-100 wideband transponder. The <a href="./demo/datv.html">DATV demo</a> puts them together as a full receiver panel.</p>
+      <ul>
+        <li><b>Constellation</b>: I/Q symbols accumulate into a fading density map, with the ideal QPSK, 8PSK, 16APSK or 32APSK points overlaid. Pinch or ctrl+wheel to zoom.</li>
+        <li><b>MerMeter</b>: red below the Es/N0 the MODCOD needs, amber just above it, green with margin. It also shows the decoding margin (D number).</li>
+        <li><b>LockStatus</b>: the demodulator's progress, Search → Header → Demod → FEC → TS.</li>
+        <li><b>TrendChart</b>: a rolling history of any reading, with threshold lines.</li>
+      </ul>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-cluster">
+            <div id="docLock" data-ham="lock-status"></div>
+            <span class="ham-spacer"></span>
+            <select class="ham-select ham-input-sm" id="docModcod" aria-label="MODCOD" style="width: auto">
+              <option>QPSK 2/3</option><option selected>8PSK 3/4</option><option>16APSK 3/4</option><option>32APSK 4/5</option>
+            </select>
+            <button class="ham-btn ham-btn-sm" id="docReacq">Re-acquire</button>
+          </div>
+          <div class="ham-grid">
+            <div class="ham-col-5"><div id="docIq" data-ham="constellation" data-show-mer="false" class="ham-rounded"></div></div>
+            <div class="ham-col-7 ham-stack" style="--ham-gap: 16px">
+              <div class="ham-meters"><div id="docMer" data-ham="mer-meter" data-modcod="8PSK 3/4"></div></div>
+              <div id="docTrend" data-ham="trend" data-points="200" data-label="MER history"></div>
+              <dl class="ham-dl">
+                <dt>MODCOD</dt><dd id="docMc">8PSK 3/4</dd>
+                <dt>Needs Es/N0</dt><dd id="docTh">7.91 dB</dd>
+                <dt>333 kS/s carries</dt><dd id="docBr">—</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+        <pre><code>const iq  = new HamUI.Constellation('#iq', { modulation: '8PSK', rate: '3/4' });
+const mer = new HamUI.MerMeter('#mer', { modcod: '8PSK 3/4' });
+const lock = new HamUI.LockStatus('#lock');
+
+demod.on('symbols', (s) =&gt; iq.push(s));      // Float32Array [i0, q0, i1, q1, …]
+demod.on('status', (st) =&gt; {
+  lock.set(st.stage);                        // 0 Search … 5 locked
+  mer.set(st.merDb);                         // value cell shows "D" margin too
+});
+
+HamUI.dvbs2.getModcod('QPSK 2/3').esn0;       // 3.10 dB (EN 302 307, QEF)
+HamUI.dvbs2.bitrate(333000, 'QPSK 2/3');      // ≈ 441 000 bit/s</code></pre>
+      </div>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>Constellation</td><td>push(iq)</td><td>modulation, rate, range, persistence, colormap, showIdeal; setModulation(), clear()</td></tr>
+        <tr><td>MerMeter</td><td>set(dB)</td><td>modcod, min, max, warnMargin; setModcod()</td></tr>
+        <tr><td>LockStatus</td><td>set(stage)</td><td>steps (default Search, Header, Demod, FEC, TS); emits ham:change {stage, locked}</td></tr>
+        <tr><td>TrendChart</td><td>push(v)</td><td>points, min, max, thresholds [{value, color, label}]</td></tr>
+        <tr><td>HamUI.dvbs2</td><td></td><td>MODCODS, getModcod, margin, bitrate, constellationPoints, measureMer</td></tr>
+        <tr><td>DvbS2Simulator</td><td>next()</td><td>Simulated symbols and lock sequence for demos: modcod, merDb, fadeDb, stage()</td></tr>
+      </tbody></table>
     </section>
 
     <section class="doc-section" id="api">

@@ -78,6 +78,7 @@ const DEFAULTS = {
   peakHold: true,
   peakHoldMs: 1500,
   off: false,           // dimmed (e.g. PWR while receiving)
+  marks: [],            // [{value, label}] reference ticks on the track (thresholds)
 };
 
 const colorOf = (c) => (/^[a-z-]+$/.test(c) && !['transparent', 'currentcolor'].includes(c) ? `var(--ham-${c})` : c);
@@ -122,11 +123,23 @@ export class Meter extends Component {
           this.fillEl = h('div', { class: 'ham-meter-fill', style: { background: `linear-gradient(to right, ${stops.join(', ')})` } }),
           h('div', { class: 'ham-meter-segs' }),
           this.peakEl = h('div', { class: 'ham-meter-peak' }),
+          (this.marksEl = h('div', { class: 'ham-meter-marks' })),
         ]),
       ]),
       this.valueEl = h('span', { class: 'ham-meter-value' }),
     );
     this.el.setAttribute('aria-label', this.options.label ?? this.scale.name);
+    this.setMarks(this.options.marks);
+  }
+
+  /** Reference ticks on the track, e.g. [{value: 4.03, label: 'QEF'}]. */
+  setMarks(marks = []) {
+    this.options.marks = marks;
+    this.marksEl.replaceChildren(...marks.map((m) => h('span', {
+      class: 'ham-meter-mark',
+      title: m.label || '',
+      style: { left: `${clamp(this.scale.map(m.value), 0, 1) * 100}%` },
+    })));
   }
 
   /** Set the reading in the meter's units (dBm for S, W, ratio, %). */

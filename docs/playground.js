@@ -112,6 +112,30 @@ HamUI.getInstance('#ptt').on('ptt', (e) => {
 });
 every(80, () => { if (tx) meter.set(pwr.get() * (0.9 + Math.random() * 0.1)); });`,
   },
+  datv: {
+    label: 'DVB-S2 constellation',
+    html: `<div class="ham-panel ham-panel-body ham-stack" style="max-width: 520px">
+  <div id="lock" data-ham="lock-status"></div>
+  <div id="iq" data-ham="constellation" data-show-mer="false"></div>
+  <div class="ham-meters"><div id="mer" data-ham="mer-meter" data-modcod="16APSK 3/4"></div></div>
+</div>`,
+    js: `HamUI.init(root);
+const iq = HamUI.getInstance('#iq');
+const mer = HamUI.getInstance('#mer');
+const lock = HamUI.getInstance('#lock');
+
+// Simulated demodulator: 16APSK 3/4 at 12.5 dB MER, slowly fading
+const demod = new HamUI.DvbS2Simulator({ modcod: '16APSK 3/4', merDb: 12.5 });
+iq.setModulation('16APSK', '3/4');
+
+every(50, () => {
+  const stage = demod.stage();
+  lock.set(stage);
+  iq.push(demod.next());
+  if (stage >= 2) { mer.setOff(false); mer.set(demod.currentMer()); }
+  else mer.setOff(true);
+});`,
+  },
   scratch: {
     label: 'From scratch (plain JS)',
     html: `<div id="spec" style="height: 220px"></div>`,

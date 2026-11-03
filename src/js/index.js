@@ -17,6 +17,12 @@ import { Clock, TxIndicator, Ptt } from './ham/station.js';
 import { FrequencyView, linkView } from './ham/view.js';
 import { bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor } from './ham/bands.js';
 import { SignalSimulator } from './sim/simulator.js';
+import { DvbS2Simulator } from './sim/dvbs2-sim.js';
+import { Constellation } from './ham/constellation.js';
+import { TrendChart } from './ham/trend.js';
+import { LockStatus } from './ham/lock-status.js';
+import { MerMeter } from './ham/mer-meter.js';
+import * as dvbs2 from './ham/dvbs2.js';
 import { getTheme, setTheme, toggleTheme, resolvedTheme, onThemeChange, readTokens } from './core/theme.js';
 import { colormaps } from './core/colormap.js';
 import * as format from './core/format.js';
@@ -38,6 +44,10 @@ export const registry = {
   ptt: Ptt,
   tabs: Tabs,
   modal: Modal,
+  constellation: Constellation,
+  trend: TrendChart,
+  'lock-status': LockStatus,
+  'mer-meter': MerMeter,
 };
 
 export const version = '0.1.0';
@@ -85,6 +95,7 @@ export {
   Tabs, Modal, toast,
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
   SignalSimulator, colormaps, format, attachScopeGestures,
+  Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
 };
 
 const HamUI = {
@@ -97,6 +108,7 @@ const HamUI = {
   Tabs, Modal, toast,
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
   SignalSimulator, colormaps, format, attachScopeGestures,
+  Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
 };
 
 export default HamUI;

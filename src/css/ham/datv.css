@@ -1,0 +1,69 @@
+/* DVB-S2 / DATV components: constellation, trend chart, lock steps, MER meter */
+
+.ham-constellation {
+  position: relative;
+  aspect-ratio: 1;
+  max-width: 100%;
+  overflow: hidden;
+  background: var(--ham-inset);
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ham-constellation > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ham-constellation-readout {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  color: var(--ham-fg-muted);
+  font: 11px var(--ham-font-mono);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.ham-trend { position: relative; height: 96px; min-width: 0; background: var(--ham-inset); }
+.ham-trend > canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* lock steps */
+.ham-lock-steps { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0; padding: 0; list-style: none; }
+.ham-lock-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ham-fg-faint);
+  font: 500 var(--ham-text-xs) var(--ham-font-mono);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.ham-lock-step + .ham-lock-step::before {
+  content: "";
+  width: 14px;
+  height: 1px;
+  margin: 0 6px 0 2px;
+  background: var(--ham-border-strong);
+}
+.ham-lock-dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--ham-border-strong); }
+.ham-lock-step[data-state="done"] { color: var(--ham-fg-muted); }
+.ham-lock-step[data-state="done"] .ham-lock-dot { background: var(--ham-rx); border-color: var(--ham-rx); }
+.ham-lock-step[data-state="active"] { color: var(--ham-fg); }
+.ham-lock-step[data-state="active"] .ham-lock-dot { border-color: var(--ham-accent); box-shadow: inset 0 0 0 2px var(--ham-accent); }
+.ham-lock[data-locked="true"] .ham-lock-step { color: var(--ham-fg); }
+.ham-lock-step[data-state="done"] + .ham-lock-step::before { background: var(--ham-rx); }
+
+/* meter threshold marks and the MER value stack */
+.ham-meter-marks { position: absolute; inset: -2px 0; pointer-events: none; }
+.ham-meter-mark { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ham-fg); opacity: 0.8; }
+.ham-meter-value-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ham-meter-sub { color: var(--ham-fg-faint); font: 500 10px var(--ham-font-mono); font-variant-numeric: tabular-nums; }
+.ham-meter-sub[data-tone="rx"] { color: var(--ham-rx); }
+.ham-meter-sub[data-tone="warn"] { color: var(--ham-warn); }
+.ham-meter-sub[data-tone="tx"] { color: var(--ham-tx); }
+.ham-meter-track { overflow: visible; }
+.ham-meter-fill, .ham-meter-segs { border-radius: 2px; }
+
+/* key/value list for stream info */
+.ham-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; font-size: var(--ham-text-sm); }
+.ham-dl dt { color: var(--ham-fg-muted); }
+.ham-dl dd { margin: 0; color: var(--ham-fg); font-family: var(--ham-font-mono); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: anywhere; }
+.ham-dl-2 { grid-template-columns: max-content minmax(0, 1fr) max-content minmax(0, 1fr); }
+@media (max-width: 520px) { .ham-dl-2 { grid-template-columns: max-content minmax(0, 1fr); } }

@@ -67,6 +67,34 @@ setInterval(() => {
   alc.set(25 + Math.random() * 15);
 }, 120);
 
+/* DVB-S2 */
+const dvb = new HamUI.DvbS2Simulator({ modcod: '8PSK 3/4', merDb: 10.5 });
+const docIq = HamUI.getInstance('#docIq'), docMer = HamUI.getInstance('#docMer');
+const docLock = HamUI.getInstance('#docLock'), docTrend = HamUI.getInstance('#docTrend');
+function setModcod(name) {
+  const m = HamUI.dvbs2.getModcod(name);
+  dvb.setModcod(name);
+  dvb.merDb = m.esn0 + 2.5;
+  docIq.setModulation(m.modulation, m.rate); docIq.clear();
+  docMer.setModcod(m);
+  docTrend.clear();
+  docTrend.setThresholds([{ value: m.esn0, color: 'warn', label: `QEF ${m.esn0.toFixed(2)} dB` }]);
+  log('#docMc', m.name); log('#docTh', `${m.esn0.toFixed(2)} dB`);
+  log('#docBr', `≈ ${(HamUI.dvbs2.bitrate(333000, m) / 1000).toFixed(0)} kbit/s`);
+}
+setModcod('8PSK 3/4');
+document.querySelector('#docModcod').onchange = (e) => setModcod(e.target.value);
+document.querySelector('#docReacq').onclick = () => { dvb.acquire(); docIq.clear(); };
+let dvbTick = 0;
+setInterval(() => {
+  const st = dvb.stage();
+  docLock.set(st);
+  docIq.push(dvb.next());
+  const m = dvb.currentMer() + (Math.random() - 0.5) * 0.2;
+  if (st >= 2) { docMer.setOff(false); docMer.set(m); } else docMer.setOff(true, '—');
+  if (++dvbTick % 4 === 0 && st >= 2) docTrend.push(m);
+}, 50);
+
 /* scopes fed by the simulator */
 const sim = new HamUI.SignalSimulator({ startHz: 14069500, spanHz: 12000, bins: 2048 });
 const range = sim.range;

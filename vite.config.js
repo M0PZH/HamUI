@@ -15,6 +15,7 @@ export default defineConfig(({ mode }) => {
           input: {
             index: resolve(import.meta.dirname, 'index.html'),
             radio: resolve(import.meta.dirname, 'demo/radio.html'),
+            datv: resolve(import.meta.dirname, 'demo/datv.html'),
             playground: resolve(import.meta.dirname, 'playground.html'),
           },
         },
