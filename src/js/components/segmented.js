@@ -1,10 +1,12 @@
 // Segmented control: one value from a few. Arrow keys move the selection.
 import { Component, h } from '../core/dom.js';
+import { haptics } from '../core/haptics.js';
 
 const DEFAULTS = {
   items: null,   // ['A','B'] or [{value, label, disabled, title}]; default: existing buttons
   value: null,
   label: null,   // accessible group name
+  haptics: true, // haptic 'select' when the user changes the value
 };
 
 export class Segmented extends Component {
@@ -60,6 +62,7 @@ export class Segmented extends Component {
     const v = value == null ? null : String(value);
     if (v === this.value) return;
     this._apply(v);
+    if (source === 'user' && this.options.haptics) haptics.fire('select', { source: this });
     if (!silent) this.emit('change', { ...this.changeDetail(this.value), source });
   }
 

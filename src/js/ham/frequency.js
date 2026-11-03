@@ -3,6 +3,7 @@
 //   or focus and use ←/→ to pick a digit and ↑/↓ to change it.
 import { Component, h, clamp } from '../core/dom.js';
 import { wheelStepper } from '../core/gestures.js';
+import { haptics } from '../core/haptics.js';
 
 const DEFAULTS = {
   value: 14074000,   // Hz
@@ -15,6 +16,7 @@ const DEFAULTS = {
   unit: null,        // e.g. 'MHz' label after the digits
   editable: true,
   label: 'Frequency',
+  haptics: true,     // haptic tick per tuning step (see HamUI.haptics)
 };
 
 export class FrequencyDisplay extends Component {
@@ -77,8 +79,13 @@ export class FrequencyDisplay extends Component {
 
   /** Step by `n` units of `place` (10^place Hz). */
   step(place, n, source = 'user') {
-    place = Math.max(place, this.options.minPlace);
-    this.set(this.value + n * 10 ** place, { source });
+    const o = this.options;
+    place = Math.max(place, o.minPlace);
+    const before = this.value;
+    this.set(before + n * 10 ** place, { source });
+    if (o.haptics && source !== 'api' && this.value !== before) {
+      haptics.fire(this.value === o.min || this.value === o.max ? 'edge' : 'tick', { source: this });
+    }
   }
 
   setTx(on) { this.el.dataset.tx = on ? 'true' : 'false'; }

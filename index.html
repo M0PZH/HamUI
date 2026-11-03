@@ -48,6 +48,7 @@
     <a href="#waterfall">Waterfall</a>
     <a href="#panadapter">Panadapter</a>
     <a href="#gestures">Gestures</a>
+    <a href="#haptics">Haptics</a>
     <a href="#knob">Knob</a>
     <a href="#selectors">Band &amp; mode</a>
     <a href="#station">Station status</a>
@@ -432,6 +433,31 @@ pan.on('viewchange', e =&gt; …);          // {start, span, zoom}</code></pre>
           </tbody>
         </table>
       </div>
+    </section>
+
+    <section class="doc-section" id="haptics">
+      <h2>Haptics</h2>
+      <p>Frequency digits, knobs, segmented controls (including band and mode) and PTT ask for haptic feedback at each detent through <code>HamUI.haptics</code>. The built-in backend uses <code>navigator.vibrate</code>, which only Android browsers implement. Browsers cannot drive a laptop trackpad, so in a native shell route it to the platform instead, e.g. Tauri on macOS calling <code>NSHapticFeedbackManager</code>.</p>
+      <div class="ham-table-wrap">
+        <table class="ham-table">
+          <thead><tr><th>Kind</th><th>Fired by</th></tr></thead>
+          <tbody>
+            <tr><td class="ham-mono">tick</td><td>Each tuning step of a frequency digit; each knob step when the knob has few steps (≤ <code>hapticSteps</code>, default 32)</td></tr>
+            <tr><td class="ham-mono">select</td><td>The user picks another segment, band or mode</td></tr>
+            <tr><td class="ham-mono">snap</td><td>A knob is reset to its default (double-click)</td></tr>
+            <tr><td class="ham-mono">edge</td><td>A frequency or knob reaches its min or max</td></tr>
+            <tr><td class="ham-mono">press</td><td>PTT goes on or off</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre><code>// Route feedback to a native shell (Tauri example)
+HamUI.haptics.use((kind, detail) =&gt; window.__TAURI__.core.invoke('haptic', { kind }));
+
+HamUI.haptics.enabled = false;   // turn it all off
+HamUI.haptics.use(null);         // or silence the backend
+HamUI.haptics.use();             // back to navigator.vibrate
+
+// per component: data-haptics="false", or a knob's data-haptics="true" to tick on every step</code></pre>
     </section>
 
     <section class="doc-section" id="knob">

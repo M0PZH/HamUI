@@ -1,6 +1,7 @@
 // Rotary knob (AF/RF gain, squelch, power…). Drag up/down, scroll, or use arrow keys.
 import { Component, h, clamp } from '../core/dom.js';
 import { wheelStepper } from '../core/gestures.js';
+import { haptics } from '../core/haptics.js';
 
 const SVGNS = 'http://www.w3.org/2000/svg';
 const DEFAULTS = {
@@ -14,6 +15,8 @@ const DEFAULTS = {
   defaultValue: null, // double-click resets to this (default: midpoint)
   size: 'md',         // 'sm' | 'md' | 'lg'
   dragRange: 150,     // px of vertical drag for the full range
+  haptics: 'auto',    // true: tick every step · 'auto': tick when there are few steps · false: off
+  hapticSteps: 32,    // 'auto' ticks every step up to this many steps; above it only at the ends
 };
 
 const A0 = -135, A1 = 135, R = 24.5, C = 26;
@@ -69,22 +72,34 @@ export class Knob extends Component {
 
   get() { return this.value; }
 
+  /** A user-driven change: set, then give haptic feedback for it. */
+  _input(v, kind = null) {
+    const o = this.options;
+    const before = this.value;
+    this.set(v);
+    if (!o.haptics || this.value === before) return;
+    const steps = Math.round((o.max - o.min) / o.step);
+    if (kind) haptics.fire(kind, { source: this });
+    else if (this.value === o.min || this.value === o.max) haptics.fire('edge', { source: this });
+    else if (o.haptics === true || steps <= o.hapticSteps) haptics.fire('tick', { source: this });
+  }
+
   _bind() {
     const o = this.options;
     const stepper = wheelStepper(20);
-    this.listen(this.svg, 'wheel', (e) => { e.preventDefault(); const n = stepper(e); if (n) this.set(this.value + n * o.step); }, { passive: false });
+    this.listen(this.svg, 'wheel', (e) => { e.preventDefault(); const n = stepper(e); if (n) this._input(this.value + n * o.step); }, { passive: false });
     this.listen(this.svg, 'keydown', (e) => {
       const big = Math.max(o.step, (o.max - o.min) / 10);
       const map = { ArrowUp: o.step, ArrowRight: o.step, ArrowDown: -o.step, ArrowLeft: -o.step, PageUp: big, PageDown: -big };
-      if (e.key in map) { this.set(this.value + map[e.key]); e.preventDefault(); }
-      else if (e.key === 'Home') { this.set(o.min); e.preventDefault(); }
-      else if (e.key === 'End') { this.set(o.max); e.preventDefault(); }
+      if (e.key in map) { this._input(this.value + map[e.key]); e.preventDefault(); }
+      else if (e.key === 'Home') { this._input(o.min); e.preventDefault(); }
+      else if (e.key === 'End') { this._input(o.max); e.preventDefault(); }
     });
     this.listen(this.svg, 'pointerdown', (e) => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       this.svg.setPointerCapture?.(e.pointerId);
       const y0 = e.clientY, v0 = this.value;
-      const move = (ev) => this.set(v0 + ((y0 - ev.clientY) / o.dragRange) * (o.max - o.min));
+      const move = (ev) => this._input(v0 + ((y0 - ev.clientY) / o.dragRange) * (o.max - o.min));
       const up = () => {
         this.svg.removeEventListener('pointermove', move);
         this.svg.removeEventListener('pointerup', up);
@@ -94,6 +109,6 @@ export class Knob extends Component {
       this.svg.addEventListener('pointerup', up);
       this.svg.addEventListener('pointercancel', up);
     });
-    this.listen(this.svg, 'dblclick', () => this.set(o.defaultValue ?? (o.min + o.max) / 2));
+    this.listen(this.svg, 'dblclick', () => this._input(o.defaultValue ?? (o.min + o.max) / 2, 'snap'));
   }
 }

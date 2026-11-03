@@ -1,4 +1,5 @@
 // Small station widgets: UTC clock, TX/RX indicator, PTT button.
+import { haptics } from '../core/haptics.js';
 import { Component } from '../core/dom.js';
 
 /* ---- Clock ---- */
@@ -55,7 +56,7 @@ export class Ptt extends Component {
    * Space bar works while focused. Emits ham:ptt {on}.
    */
   constructor(el, options = {}) {
-    super(el, options, { mode: 'momentary', label: 'PTT', txLabel: 'TX' });
+    super(el, options, { mode: 'momentary', label: 'PTT', txLabel: 'TX', haptics: true });
     const b = this.el;
     b.classList.add('ham-btn', 'ham-ptt');
     if (b.tagName === 'BUTTON') b.type = 'button';
@@ -89,6 +90,7 @@ export class Ptt extends Component {
     this.on_ = on;
     this.el.setAttribute('aria-pressed', on);
     this.el.textContent = on ? this.options.txLabel : this.options.label;
+    if (changed && !silent && this.options.haptics) haptics.fire('press', { source: this });
     if (changed && !silent) this.emit('ptt', { on });
   }
 }

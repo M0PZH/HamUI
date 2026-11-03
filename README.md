@@ -49,6 +49,9 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 | TrendChart | `trend` | rolling history of a reading with threshold lines |
 | Tabs, Modal, toast() | `tabs`, `modal` | general UI |
 
+`HamUI.haptics` gives haptic feedback at detents (frequency steps, knob steps, segment changes, PTT). The default backend is
+`navigator.vibrate` (Android); `HamUI.haptics.use(fn)` routes it elsewhere, e.g. to a Tauri command that calls the macOS trackpad.
+
 All events are bubbling `ham:*` CustomEvents: `ham:tune`, `ham:viewchange`, `ham:hover`, `ham:change`, `ham:ptt`, `ham:themechange`.
 
 `HamUI.SignalSimulator` produces plausible band activity (FT8, JS8, CW, carriers) and
