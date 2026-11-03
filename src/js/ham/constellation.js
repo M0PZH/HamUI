@@ -1,6 +1,10 @@
 // Constellation (I/Q scatter) with persistence: symbols accumulate into a
 // density map that fades over time, drawn through the waterfall colormap.
 // Ideal points for the current modulation are overlaid.
+//
+// The density grid covers exactly the visible area at (by default) one cell
+// per device pixel, and each symbol is splatted bilinearly into its four
+// nearest cells, so points stay sharp at any size or zoom.
 import { Component, h } from '../core/dom.js';
 import { Surface, frameScheduler } from '../core/canvas.js';
 import { resolveColormap } from '../core/colormap.js';
@@ -12,7 +16,7 @@ const DEFAULTS = {
   modulation: 'QPSK',   // 'QPSK' | '8PSK' | '16APSK' | '32APSK' | null (no overlay)
   rate: null,           // code rate, picks APSK ring ratios
   range: 1.6,           // half-width of the plot in unit-power symbols
-  resolution: 160,      // density grid cells per side
+  resolution: 'auto',   // density cells per side; 'auto' = device pixels (128–1024)
   persistence: 0.82,    // density kept per push (0 = none, 0.95 = long trails)
   normalize: true,      // scale input to unit average power
   colormap: 'theme',
@@ -30,31 +34,56 @@ export class Constellation extends Component {
     this.el.setAttribute('role', 'img');
     this.el.setAttribute('aria-label', o.label);
     this.range = o.range;
-    this.n = o.resolution;
-    this.density = new Float32Array(this.n * this.n);
+    this.n = 0;
     this.peak = 1;
     this.power = 1;
     this.mer = NaN;
     this.grid = document.createElement('canvas');
-    this.grid.width = this.grid.height = this.n;
     this.gctx = this.grid.getContext('2d');
-    this.img = this.gctx.createImageData(this.n, this.n);
 
     this._sched = frameScheduler(() => this.draw());
-    this.surface = new Surface(this.el, { onResize: () => this._sched.request() });
+    this.surface = new Surface(this.el, { onResize: () => this._layout() });
     this.readout = h('div', { class: 'ham-constellation-readout', 'aria-live': 'off' });
     this.el.append(this.readout);
     this.setModulation(o.modulation, o.rate);
+    this._layout();
 
     if (o.interactive) {
       this.onDestroy(attachScopeGestures(this.el, {
-        zoom: (f) => { this.range = Math.min(4, Math.max(0.4, this.range / f)); this._sched.request(); },
+        zoom: (f) => this.setRange(this.range / f),
         pan: () => {},
-        doubleTap: () => { this.range = o.range; this._sched.request(); },
+        doubleTap: () => this.setRange(o.range),
       }));
     }
     this.refreshColors();
     this.onDestroy(onThemeChange(() => { this.refreshColors(); this._sched.request(); }));
+  }
+
+  /** Size the density grid to the plot. Changing size or zoom starts a fresh history. */
+  _layout() {
+    const s = this.surface;
+    if (!s) return; // called once from inside the Surface constructor
+    const size = Math.min(s.width, s.height);
+    const res = this.options.resolution;
+    const n = res === 'auto' ? Math.max(128, Math.min(1024, Math.round(size))) : Math.max(16, res | 0);
+    if (n !== this.n) {
+      this.n = n;
+      this.density = new Float32Array(n * n);
+      this.grid.width = this.grid.height = n;
+      this.img = this.gctx.createImageData(n, n);
+      this.peak = 1;
+    }
+    this._sched.request();
+  }
+
+  /** Zoom: half-width of the plot in unit-power symbols (0.4–4). */
+  setRange(range) {
+    const r = Math.min(4, Math.max(0.4, range));
+    if (r === this.range) return;
+    this.range = r;
+    this.density.fill(0);
+    this.peak = 1;
+    this._sched.request();
   }
 
   refreshColors() {
@@ -70,7 +99,7 @@ export class Constellation extends Component {
     this.ideal = modulation ? constellationPoints(modulation, rate) : [];
     this.mer = NaN;
     this.rings = [...new Set(this.ideal.map(([i, q]) => Math.hypot(i, q).toFixed(3)))].map(Number);
-    this._sched?.request();
+    this._sched.request();
   }
 
   setColormap(spec) { this.options.colormap = spec; this.lut = resolveColormap(spec, this.el); this._sched.request(); }
@@ -84,27 +113,35 @@ export class Constellation extends Component {
   push(iq) {
     const o = this.options, n = this.n, d = this.density;
     const count = iq.length >> 1;
-    if (!count) return;
+    if (!count || !n) return;
     if (o.normalize) {
       let p = 0;
       for (let k = 0; k < iq.length; k++) p += iq[k] * iq[k];
       this.power += ((p / count) - this.power) * 0.3;
     }
     const s = o.normalize ? 1 / Math.sqrt(this.power || 1) : 1;
-    // fade
     const keep = o.persistence;
-    let peak = 0;
-    for (let k = 0; k < d.length; k++) { d[k] *= keep; }
-    // accumulate (fixed full-scale so zooming does not rescale history)
-    const full = 2.4, half = n / 2, cell = half / full;
+    for (let k = 0; k < d.length; k++) d[k] *= keep;
+
+    // splat each symbol as a small soft dot (3×3 tent, sub-cell positioned)
+    const cell = n / (2 * this.range), half = n / 2;
     for (let k = 0; k < count; k++) {
-      const x = Math.floor(iq[2 * k] * s * cell + half);
-      const y = Math.floor(-iq[2 * k + 1] * s * cell + half);
-      if (x < 0 || y < 0 || x >= n || y >= n) continue;
-      d[y * n + x] += 1;
+      const fx = iq[2 * k] * s * cell + half;
+      const fy = -iq[2 * k + 1] * s * cell + half;
+      const x = Math.round(fx), y = Math.round(fy);
+      if (x < 1 || y < 1 || x >= n - 1 || y >= n - 1) continue;
+      const dx = fx - x, dy = fy - y;           // -0.5 … 0.5
+      const wx0 = 0.5 - dx * 0.5, wx2 = 0.5 + dx * 0.5;   // left / right weights, centre = 1
+      const wy0 = 0.5 - dy * 0.5, wy2 = 0.5 + dy * 0.5;
+      const p = y * n + x;
+      d[p - n - 1] += wy0 * wx0 * 0.5; d[p - n] += wy0 * 0.5; d[p - n + 1] += wy0 * wx2 * 0.5;
+      d[p - 1] += wx0 * 0.5;           d[p] += 1;           d[p + 1] += wx2 * 0.5;
+      d[p + n - 1] += wy2 * wx0 * 0.5; d[p + n] += wy2 * 0.5; d[p + n + 1] += wy2 * wx2 * 0.5;
     }
+    let peak = 0;
     for (let k = 0; k < d.length; k++) if (d[k] > peak) peak = d[k];
-    this.peak += (Math.max(1, peak) - this.peak) * 0.2;
+    this.peak += (Math.max(0.5, peak) - this.peak) * 0.2;
+
     if (o.showMer && this.ideal.length) {
       const scaled = new Float32Array(iq.length);
       for (let k = 0; k < iq.length; k++) scaled[k] = iq[k] * s;
@@ -116,34 +153,21 @@ export class Constellation extends Component {
 
   draw() {
     const s = this.surface, ctx = s.ctx, W = s.width, H = s.height, dpr = s.dpr, c = this.colors;
-    if (!W || !H) return;
+    if (!W || !H || !this.n) return;
     ctx.fillStyle = c.inset;
     ctx.fillRect(0, 0, W, H);
     const size = Math.min(W, H), ox = (W - size) / 2, oy = (H - size) / 2;
     const px = size / (2 * this.range);         // pixels per unit
     const cx = W / 2, cy = H / 2;
 
-    // density image: grid covers ±2.4 units
-    const n = this.n, d = this.density, img = this.img.data, lut = this.lut;
-    const norm = 1 / Math.log1p(this.peak);
-    for (let k = 0, p = 0; k < d.length; k++, p += 4) {
-      const v = d[k] > 0.02 ? Math.log1p(d[k]) * norm : 0;
-      const t = Math.min(255, (v * 255) | 0);
-      img[p] = lut[t * 3]; img[p + 1] = lut[t * 3 + 1]; img[p + 2] = lut[t * 3 + 2];
-      img[p + 3] = v > 0 ? Math.min(255, 60 + v * 400) : 0;
-    }
-    this.gctx.putImageData(this.img, 0, 0);
-    const span = 2.4 * 2 * px;
-    ctx.imageSmoothingEnabled = true;
+    // axes and rings
     ctx.save();
     ctx.beginPath(); ctx.rect(ox, oy, size, size); ctx.clip();
-
-    // axes and rings
     ctx.strokeStyle = c.grid;
     ctx.lineWidth = dpr;
     ctx.beginPath();
-    ctx.moveTo(ox, cy + 0.5); ctx.lineTo(ox + size, cy + 0.5);
-    ctx.moveTo(cx + 0.5, oy); ctx.lineTo(cx + 0.5, oy + size);
+    ctx.moveTo(ox, Math.round(cy) + 0.5); ctx.lineTo(ox + size, Math.round(cy) + 0.5);
+    ctx.moveTo(Math.round(cx) + 0.5, oy); ctx.lineTo(Math.round(cx) + 0.5, oy + size);
     ctx.stroke();
     ctx.setLineDash([3 * dpr, 4 * dpr]);
     for (const r of this.rings.length ? this.rings : [1]) {
@@ -151,12 +175,24 @@ export class Constellation extends Component {
     }
     ctx.setLineDash([]);
 
-    ctx.drawImage(this.grid, cx - span / 2, cy - span / 2, span, span);
+    // density image (log scale, transparent where empty)
+    const d = this.density, img = this.img.data, lut = this.lut;
+    const norm = 1 / Math.log1p(this.peak);
+    for (let k = 0, p = 0; k < d.length; k++, p += 4) {
+      if (d[k] < 0.04) { img[p + 3] = 0; continue; }
+      const v = Math.min(1, Math.log1p(d[k]) * norm) ** 0.7;
+      const t = ((0.3 + v * 0.7) * 255) | 0;     // skip the darkest end so single hits stay visible
+      img[p] = lut[t * 3]; img[p + 1] = lut[t * 3 + 1]; img[p + 2] = lut[t * 3 + 2];
+      img[p + 3] = Math.min(255, 110 + v * 300);
+    }
+    this.gctx.putImageData(this.img, 0, 0);
+    ctx.imageSmoothingEnabled = this.n < size * 0.9;
+    ctx.drawImage(this.grid, ox, oy, size, size);
 
     // ideal points
     if (this.options.showIdeal) {
       ctx.strokeStyle = c.fg;
-      ctx.globalAlpha = 0.55;
+      ctx.globalAlpha = 0.6;
       ctx.lineWidth = dpr;
       const a = 3.5 * dpr;
       ctx.beginPath();
