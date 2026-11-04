@@ -5,8 +5,8 @@
 //   two-finger swipe →← -> pan;  vertical swipe is left to the page
 //   ctrl/⌘ + wheel      -> zoom (mouse)
 //   shift + wheel       -> pan (mouse)
-//   drag                -> pan (or a custom drag from h.grab, e.g. drag-to-tune)
-//   click / tap         -> tune
+//   drag                -> pan, unless h.grab takes it (drag-to-tune)
+//   click / tap         -> tune (or h.grab's press)
 //   double click / tap  -> reset
 //   two-finger touch    -> pinch zoom + pan
 
@@ -18,8 +18,10 @@ const DOUBLE_MS = 300;
  * @param {object} h handlers
  * @param {(factor:number, clientX:number) => void} h.zoom   factor > 1 zooms in
  * @param {(dxPx:number) => void} h.pan                      positive = toward higher frequency
- * @param {(clientX:number, clientY:number) => ({move:(clientX:number)=>void, end?:()=>void}|null)} [h.grab]
- *        called when a one-finger drag starts; return a handler to take the drag over instead of panning
+ * @param {(clientX:number, clientY:number) => ({press?:()=>void, move:(clientX:number)=>void, end?:()=>void}|null)} [h.grab]
+ *        called on a one-finger press; return a handler to take the drag over instead of panning.
+ *        `press` runs at once for mouse and pen, and for touch on a tap or when the drag starts
+ *        (so a vertical swipe can still scroll the page); a grab with `press` replaces h.tap.
  * @param {(e:PointerEvent) => void} [h.tap]
  * @param {(e:PointerEvent) => void} [h.doubleTap]
  * @param {(clientX:number, clientY:number) => void} [h.hover]
@@ -30,8 +32,9 @@ export function attachScopeGestures(el, h) {
   const pointers = new Map();
   let downX = 0, downY = 0, moved = false, pinch = null, lastTap = { t: 0, x: 0, y: 0 };
   let safariScale = 1;
-  let grab = null;
+  let grab = null, pressed = false;
   const endGrab = () => { if (grab) { grab.end?.(); grab = null; el.classList.remove('is-grabbing'); } };
+  const doPress = () => { if (grab?.press && !pressed) { pressed = true; grab.press(); } };
 
   const onWheel = (e) => {
     if (e.ctrlKey || e.metaKey) {
@@ -64,10 +67,13 @@ export function attachScopeGestures(el, h) {
 
   const onDown = (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    el.setPointerCapture?.(e.pointerId);
+    try { el.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already released pointer */ }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pointers.size === 1) { downX = e.clientX; downY = e.clientY; moved = false; }
-    else { moved = true; endGrab(); }
+    if (pointers.size === 1) {
+      downX = e.clientX; downY = e.clientY; moved = false; pressed = false;
+      grab = h.grab?.(e.clientX, e.clientY) || null;
+      if (grab?.press && e.pointerType !== 'touch') { doPress(); el.classList.add('is-grabbing'); }
+    } else { moved = true; endGrab(); }
     pinch = null;
   };
 
@@ -79,7 +85,7 @@ export function attachScopeGestures(el, h) {
     if (pointers.size === 1) {
       if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) > TAP_SLOP) {
         moved = true;
-        grab = h.grab?.(downX, downY) || null;
+        doPress();
         el.classList.add(grab ? 'is-grabbing' : 'is-dragging');
       }
       if (moved) { if (grab) grab.move(e.clientX); else h.pan(-(e.clientX - prev.x)); }
@@ -100,6 +106,8 @@ export function attachScopeGestures(el, h) {
     pointers.delete(e.pointerId);
     pinch = null;
     if (pointers.size) return;
+    const g = grab;
+    if (!cancelled && !moved && g) doPress(); // touch tap
     endGrab();
     el.classList.remove('is-dragging');
     if (cancelled || moved) return;
@@ -110,7 +118,7 @@ export function attachScopeGestures(el, h) {
       return;
     }
     lastTap = { t: now, x: e.clientX, y: e.clientY };
-    h.tap?.(e);
+    if (!g?.press) h.tap?.(e);
   };
   const onPointerUp = (e) => onUp(e, false);
   const onPointerCancel = (e) => onUp(e, true);

@@ -85,7 +85,7 @@
       <div class="scope">
         <div class="ham-scope-bar">
           <span class="ham-label">Spectrum</span>
-          <span class="ham-faint ham-text-sm" id="hint">Pinch to zoom · drag to pan · drag the passband or click to tune · double-click to reset</span>
+          <span class="ham-faint ham-text-sm" id="hint">Click or drag to tune · drag the frequency scale or swipe sideways to pan · pinch to zoom · double-click to reset</span>
           <span class="ham-spacer"></span>
           <select class="ham-select ham-input-sm" id="cmap" aria-label="Waterfall colormap" style="width: auto">
             <option value="theme">Theme</option>
@@ -102,7 +102,7 @@
           <button class="ham-btn ham-btn-sm ham-btn-icon" id="zoomIn" aria-label="Zoom in">+</button>
           <button class="ham-btn ham-btn-sm" id="zoomReset">Reset</button>
         </div>
-        <div id="pan" data-ham="panadapter" data-span-hz="12000" data-start-hz="14069500" data-min-db="-128" data-max-db="-60" data-min-span="300" data-drag-tune="passband" data-label="Spectrum and waterfall"></div>
+        <div id="pan" data-ham="panadapter" data-span-hz="12000" data-start-hz="14069500" data-min-db="-128" data-max-db="-60" data-min-span="300" data-label="Spectrum and waterfall"></div>
       </div>
 
       <div class="ctl">
@@ -150,7 +150,7 @@ const S = { mode: 'USB', bw: 2900, split: false, tx: false, agc: 'Mid' };
 const sim = new HamUI.SignalSimulator({ startHz: 14069500, spanHz: 12000, bins: 2048 });
 
 $('#themeBtn').onclick = () => HamUI.theme.toggle();
-if (matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'Pinch to zoom · drag to pan · drag the passband or tap to tune';
+if (matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'Tap or drag to tune · drag the scale or use two fingers to pan · pinch to zoom';
 
 /* ---- tuning ---- */
 function passband() { return HamUI.passbandFor(S.mode, S.mode === 'FM' || S.mode === 'AM' ? undefined : S.bw); }

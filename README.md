@@ -4,7 +4,7 @@ A quiet, modern UI framework for ham radio software. One stylesheet covers layou
 
 - Dark by default, light and "follow system" themes via `data-theme`
 - Everything themed through `--ham-*` CSS custom properties; canvases repaint on theme change
-- Trackpad and touch friendly: pinch to zoom the spectrum/waterfall, two-finger swipe to pan, tap to tune; hit targets grow to 44 px on touch screens
+- Trackpad and touch friendly: pinch to zoom the spectrum/waterfall, two-finger swipe or drag the frequency scale to pan, click or drag to tune; hit targets grow to 44 px on touch screens
 - Bootstrap-style data API (`data-ham="spectrum"` + `HamUI.init()`) or plain classes (`new HamUI.Spectrum(el, opts)`)
 
 ## Use

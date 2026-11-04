@@ -65,6 +65,13 @@ export class Spectrum extends ScopeBase {
   setPeakHold(on) { this.options.peakHold = on; if (on && this.data) this.peak.set(this.data); this.invalidate(); }
   clearPeak() { if (this.data) this.peak.set(this.data); this.invalidate(); }
 
+  /** The frequency axis along the bottom is where a drag pans in 'press' mode. */
+  isPanZone(clientX, clientY) {
+    if (!this.options.axis) return false;
+    const r = this.el.getBoundingClientRect();
+    return clientY - r.top > r.height - 22;
+  }
+
   readoutText(hz, y) {
     const H = this.el.clientHeight - (this.options.axis ? 22 : 0);
     const { minDb, maxDb } = this.options;

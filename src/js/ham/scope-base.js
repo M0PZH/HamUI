@@ -20,7 +20,9 @@ export const SCOPE_DEFAULTS = {
   interactive: true,
   tuneStep: 10,         // click-to-tune rounding (Hz)
   autoDial: true,       // move the dial on tune (cancel the ham:tune event to prevent)
-  dragTune: false,      // drag to tune: 'passband' (grab the passband or dial line), 'always', or false (drag pans)
+  dragTune: 'press',    // 'press': press anywhere tunes there and dragging keeps tuning; drag the
+                        //   frequency axis to pan · 'passband': drag the passband to tune, elsewhere pans ·
+                        //   'always': every drag moves the tune · false: drag pans, click tunes
   readout: true,        // pointer frequency readout
   label: null,          // accessible name
 };
@@ -60,7 +62,7 @@ export class ScopeBase extends Component {
         zoom: (f, x) => this.view.zoomAt(f, this.clientXToHz(x)),
         pan: (dx) => this.view.pan((dx / this._cssWidth()) * this.view.span),
         tap: (e) => this.tuneTo(this.clientXToHz(e.clientX)),
-        grab: (x) => this._grabTune(x),
+        grab: (x, y) => this._grabTune(x, y),
         doubleTap: () => this.view.reset(),
         hover: (x, y) => this._hover(x, y),
         leave: () => this._hover(null),
@@ -137,10 +139,13 @@ export class ScopeBase extends Component {
   /** The drag-to-tune mode in effect: 'passband', 'always' or null. */
   get dragTuneMode() {
     const m = this.options.dragTune;
-    return m === true ? 'passband' : m === 'passband' || m === 'always' ? m : null;
+    return m === true ? 'passband' : ['press', 'passband', 'always'].includes(m) ? m : null;
   }
 
-  setDragTune(mode) { this.options.dragTune = mode; this.el.classList.remove('is-over-tune'); }
+  setDragTune(mode) { this.options.dragTune = mode; this.el.classList.remove('is-over-tune', 'is-over-pan'); }
+
+  /** Where a drag pans the view in 'press' mode (the spectrum's frequency axis). */
+  isPanZone() { return false; }
 
   /** Is clientX over the passband (or near the dial line when there is none)? */
   isOverTune(clientX) {
@@ -153,8 +158,15 @@ export class ScopeBase extends Component {
     return hz >= lo - pad && hz <= hi + pad;
   }
 
-  _grabTune(clientX) {
+  _grabTune(clientX, clientY) {
     const mode = this.dragTuneMode;
+    if (mode === 'press') {
+      if (this.isPanZone(clientX, clientY)) return null;
+      return {
+        press: () => this.tuneTo(this.clientXToHz(clientX), { source: 'click' }),
+        move: (x) => this.tuneTo(this.clientXToHz(x), { source: 'drag' }),
+      };
+    }
     if (!mode || this.dial == null || (mode === 'passband' && !this.isOverTune(clientX))) return null;
     const startDial = this.dial;
     const x0 = clientX;
@@ -169,9 +181,11 @@ export class ScopeBase extends Component {
   _hover(clientX, clientY) {
     if (clientX == null) {
       this.hoverX = -1;
-      this.el.classList.remove('is-hover', 'is-over-tune');
+      this.el.classList.remove('is-hover', 'is-over-tune', 'is-over-pan');
     } else {
-      if (this.dragTuneMode === 'passband') this.el.classList.toggle('is-over-tune', this.isOverTune(clientX));
+      const mode = this.dragTuneMode;
+      if (mode === 'passband') this.el.classList.toggle('is-over-tune', this.isOverTune(clientX));
+      if (mode === 'press') this.el.classList.toggle('is-over-pan', this.isPanZone(clientX, clientY));
       const r = this.el.getBoundingClientRect();
       this.hoverX = clientX - r.left;
       this.el.classList.add('is-hover');
