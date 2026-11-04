@@ -20,6 +20,7 @@ export const SCOPE_DEFAULTS = {
   interactive: true,
   tuneStep: 10,         // click-to-tune rounding (Hz)
   autoDial: true,       // move the dial on tune (cancel the ham:tune event to prevent)
+  dragTune: false,      // drag to tune: 'passband' (grab the passband or dial line), 'always', or false (drag pans)
   readout: true,        // pointer frequency readout
   label: null,          // accessible name
 };
@@ -59,6 +60,7 @@ export class ScopeBase extends Component {
         zoom: (f, x) => this.view.zoomAt(f, this.clientXToHz(x)),
         pan: (dx) => this.view.pan((dx / this._cssWidth()) * this.view.span),
         tap: (e) => this.tuneTo(this.clientXToHz(e.clientX)),
+        grab: (x) => this._grabTune(x),
         doubleTap: () => this.view.reset(),
         hover: (x, y) => this._hover(x, y),
         leave: () => this._hover(null),
@@ -123,19 +125,53 @@ export class ScopeBase extends Component {
     return this.view.hzAt((clientX - r.left) / (r.width || 1));
   }
 
-  /** Programmatic or gesture tune. Emits cancelable-ish ham:tune {hz}. */
-  tuneTo(hz) {
+  /** Programmatic or gesture tune. Emits a cancelable ham:tune {hz, source}. */
+  tuneTo(hz, { source = 'click' } = {}) {
     const step = this.options.tuneStep || 1;
     const rounded = Math.round(hz / step) * step;
-    const ok = this.el.dispatchEvent(new CustomEvent('ham:tune', { detail: { hz: rounded }, bubbles: true, cancelable: true }));
+    if (source === 'drag' && rounded === this.dial) return;
+    const ok = this.el.dispatchEvent(new CustomEvent('ham:tune', { detail: { hz: rounded, source }, bubbles: true, cancelable: true }));
     if (ok && this.options.autoDial) this.setDial(rounded);
+  }
+
+  /** The drag-to-tune mode in effect: 'passband', 'always' or null. */
+  get dragTuneMode() {
+    const m = this.options.dragTune;
+    return m === true ? 'passband' : m === 'passband' || m === 'always' ? m : null;
+  }
+
+  setDragTune(mode) { this.options.dragTune = mode; this.el.classList.remove('is-over-tune'); }
+
+  /** Is clientX over the passband (or near the dial line when there is none)? */
+  isOverTune(clientX) {
+    if (this.dial == null) return false;
+    const r = this.el.getBoundingClientRect();
+    const hzPerPx = this.view.span / (r.width || 1);
+    const hz = this.clientXToHz(clientX);
+    const pad = 6 * hzPerPx;
+    const [lo, hi] = this.passband ? [this.dial + Math.min(...this.passband), this.dial + Math.max(...this.passband)] : [this.dial, this.dial];
+    return hz >= lo - pad && hz <= hi + pad;
+  }
+
+  _grabTune(clientX) {
+    const mode = this.dragTuneMode;
+    if (!mode || this.dial == null || (mode === 'passband' && !this.isOverTune(clientX))) return null;
+    const startDial = this.dial;
+    const x0 = clientX;
+    return {
+      move: (x) => {
+        const hz = startDial + ((x - x0) / this._cssWidth()) * this.view.span;
+        this.tuneTo(hz, { source: 'drag' });
+      },
+    };
   }
 
   _hover(clientX, clientY) {
     if (clientX == null) {
       this.hoverX = -1;
-      this.el.classList.remove('is-hover');
+      this.el.classList.remove('is-hover', 'is-over-tune');
     } else {
+      if (this.dragTuneMode === 'passband') this.el.classList.toggle('is-over-tune', this.isOverTune(clientX));
       const r = this.el.getBoundingClientRect();
       this.hoverX = clientX - r.left;
       this.el.classList.add('is-hover');

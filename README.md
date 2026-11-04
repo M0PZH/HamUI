@@ -34,7 +34,7 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 
 | Name | `data-ham` | Notes |
 | --- | --- | --- |
-| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers |
+| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers, `dragTune` |
 | Waterfall | `waterfall` | `push(bins, range?)`, colormaps (`theme`, `viridis`, `inferno`, `plasma`, `turbo`, `gray`), `autoLevel()` |
 | Panadapter | `panadapter` | spectrum + waterfall sharing one `FrequencyView` |
 | Meter | `meter` | `type`: `s`, `power`, `swr`, `alc`, `custom` |

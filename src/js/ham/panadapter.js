@@ -40,6 +40,7 @@ export class Panadapter extends Component {
   setDial(hz) { this.spectrum.setDial(hz); this.waterfall.setDial(hz); }
   setPassband(pb) { this.spectrum.setPassband(pb); this.waterfall.setPassband(pb); }
   setMarkers(m) { this.spectrum.setMarkers(m); this.waterfall.setMarkers(m); }
+  setDragTune(mode) { this.spectrum.setDragTune(mode); this.waterfall.setDragTune(mode); }
   setDataRange(start, span) { this.spectrum.setDataRange(start, span); this.waterfall.setDataRange(start, span); }
 
   destroy() {

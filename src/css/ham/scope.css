@@ -32,6 +32,8 @@
 }
 .ham-spectrum.is-hover .ham-scope-readout, .ham-waterfall.is-hover .ham-scope-readout { opacity: 1; }
 .ham-spectrum.is-dragging, .ham-waterfall.is-dragging { cursor: grabbing; }
+.ham-spectrum.is-over-tune, .ham-waterfall.is-over-tune { cursor: ew-resize; }
+.ham-spectrum.is-grabbing, .ham-waterfall.is-grabbing { cursor: ew-resize; }
 
 .ham-panadapter { display: flex; flex-direction: column; min-width: 0; }
 .ham-panadapter > .ham-waterfall { border-top: 1px solid var(--ham-border); }

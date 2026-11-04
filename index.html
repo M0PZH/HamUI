@@ -397,21 +397,24 @@ wf.autoLevel();</code></pre>
         <div class="doc-preview is-flush">
           <div class="ham-scope-bar">
             <span class="ham-label">Panadapter</span>
-            <span class="ham-faint ham-text-sm">Pinch to zoom · swipe sideways to pan · click to tune · double-click to reset</span>
+            <span class="ham-faint ham-text-sm">Pinch to zoom · drag to pan · drag the passband to tune · click to tune · double-click to reset</span>
             <span class="ham-spacer"></span>
             <button class="ham-btn ham-btn-sm ham-btn-icon" id="panZoomOut" aria-label="Zoom out">−</button>
             <span class="ham-scope-span" id="docPanSpan">12.0 kHz</span>
             <button class="ham-btn ham-btn-sm ham-btn-icon" id="panZoomIn" aria-label="Zoom in">+</button>
             <button class="ham-btn ham-btn-sm" id="panReset">Reset</button>
           </div>
-          <div id="docPan" data-ham="panadapter" data-start-hz="14069500" data-span-hz="12000" data-min-db="-130" data-max-db="-60" data-min-span="300"></div>
+          <div id="docPan" data-ham="panadapter" data-start-hz="14069500" data-span-hz="12000" data-min-db="-130" data-max-db="-60" data-min-span="300" data-drag-tune="passband"></div>
         </div>
-        <pre><code>&lt;div id="pan" data-ham="panadapter" data-start-hz="14069500" data-span-hz="12000"&gt;&lt;/div&gt;
+        <pre><code>&lt;div id="pan" data-ham="panadapter" data-start-hz="14069500" data-span-hz="12000"
+     data-drag-tune="passband"&gt;&lt;/div&gt;
 
 const pan = HamUI.getInstance('#pan');
 pan.push(frame);                       // updates both views
 pan.view.zoomAt(2, 14074000);          // zoom from code
-pan.on('viewchange', e =&gt; …);          // {start, span, zoom}</code></pre>
+pan.on('viewchange', e =&gt; …);          // {start, span, zoom}
+pan.on('tune', e =&gt; …);                // {hz, source: 'click' | 'drag'}
+pan.setDragTune('always');             // 'passband' | 'always' | false</code></pre>
       </div>
       <div class="doc-log" id="docPanLog"></div>
     </section>
@@ -426,7 +429,7 @@ pan.on('viewchange', e =&gt; …);          // {start, span, zoom}</code></pre>
             <tr><td>Trackpad</td><td>Pinch</td><td>Zoom around the pointer (ctrl+wheel in Chrome/Edge/Firefox, gesture events in Safari)</td></tr>
             <tr><td>Trackpad</td><td>Two-finger horizontal swipe</td><td>Pan</td></tr>
             <tr><td>Mouse</td><td>Ctrl/⌘ + wheel · Shift + wheel</td><td>Zoom · pan</td></tr>
-            <tr><td>Mouse / touch</td><td>Drag</td><td>Pan</td></tr>
+            <tr><td>Mouse / touch</td><td>Drag</td><td>Pan, or tune with <code>dragTune</code>: <code>'passband'</code> when the drag starts on the passband or dial line, <code>'always'</code> for every drag</td></tr>
             <tr><td>Mouse / touch</td><td>Click · double-click</td><td>Tune · reset view</td></tr>
             <tr><td>Touch</td><td>Two-finger pinch</td><td>Zoom + pan</td></tr>
             <tr><td>Keyboard</td><td>← → · + − · Home</td><td>Pan · zoom · reset</td></tr>

@@ -5,7 +5,7 @@
 //   two-finger swipe →← -> pan;  vertical swipe is left to the page
 //   ctrl/⌘ + wheel      -> zoom (mouse)
 //   shift + wheel       -> pan (mouse)
-//   drag                -> pan
+//   drag                -> pan (or a custom drag from h.grab, e.g. drag-to-tune)
 //   click / tap         -> tune
 //   double click / tap  -> reset
 //   two-finger touch    -> pinch zoom + pan
@@ -18,6 +18,8 @@ const DOUBLE_MS = 300;
  * @param {object} h handlers
  * @param {(factor:number, clientX:number) => void} h.zoom   factor > 1 zooms in
  * @param {(dxPx:number) => void} h.pan                      positive = toward higher frequency
+ * @param {(clientX:number, clientY:number) => ({move:(clientX:number)=>void, end?:()=>void}|null)} [h.grab]
+ *        called when a one-finger drag starts; return a handler to take the drag over instead of panning
  * @param {(e:PointerEvent) => void} [h.tap]
  * @param {(e:PointerEvent) => void} [h.doubleTap]
  * @param {(clientX:number, clientY:number) => void} [h.hover]
@@ -28,6 +30,8 @@ export function attachScopeGestures(el, h) {
   const pointers = new Map();
   let downX = 0, downY = 0, moved = false, pinch = null, lastTap = { t: 0, x: 0, y: 0 };
   let safariScale = 1;
+  let grab = null;
+  const endGrab = () => { if (grab) { grab.end?.(); grab = null; el.classList.remove('is-grabbing'); } };
 
   const onWheel = (e) => {
     if (e.ctrlKey || e.metaKey) {
@@ -63,7 +67,7 @@ export function attachScopeGestures(el, h) {
     el.setPointerCapture?.(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 1) { downX = e.clientX; downY = e.clientY; moved = false; }
-    else moved = true;
+    else { moved = true; endGrab(); }
     pinch = null;
   };
 
@@ -75,9 +79,10 @@ export function attachScopeGestures(el, h) {
     if (pointers.size === 1) {
       if (!moved && Math.hypot(e.clientX - downX, e.clientY - downY) > TAP_SLOP) {
         moved = true;
-        el.classList.add('is-dragging');
+        grab = h.grab?.(downX, downY) || null;
+        el.classList.add(grab ? 'is-grabbing' : 'is-dragging');
       }
-      if (moved) h.pan(-(e.clientX - prev.x));
+      if (moved) { if (grab) grab.move(e.clientX); else h.pan(-(e.clientX - prev.x)); }
     } else if (pointers.size === 2) {
       const [a, b] = [...pointers.values()];
       const dist = Math.max(8, Math.abs(a.x - b.x));
@@ -95,6 +100,7 @@ export function attachScopeGestures(el, h) {
     pointers.delete(e.pointerId);
     pinch = null;
     if (pointers.size) return;
+    endGrab();
     el.classList.remove('is-dragging');
     if (cancelled || moved) return;
     const now = performance.now();
