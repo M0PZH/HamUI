@@ -119,8 +119,36 @@ HamUI.getInstance('#wfMap').on('change', (e) => wf.setColormap(e.detail.value));
 const now = Date.now();
 for (let i = 256; i > 0; i--) { const f = sim.next(now - i * 50); wf.push(f, range); pan.waterfall.push(f, range); }
 
+/* channel strip: a QO-100 wideband transponder with a few carriers */
+const chan = HamUI.getInstance('#docChannels');
+chan.setChannels(HamUI.bandplans.qo100Wideband);
+const QO = { startHz: 10490e6, spanHz: 10e6 }, QO_BINS = 1024;
+const carriers = [[10491.5e6, 1.5e6, 11], [10493.25e6, 1e6, 12], [10494.75e6, 333e3, 8], [10496e6, 500e3, 7], [10499e6, 125e3, 5]];
+const qoFrame = new Float32Array(QO_BINS);
+function qoSpectrum() {
+  for (let i = 0; i < QO_BINS; i++) {
+    const f = QO.startHz + (i / QO_BINS) * QO.spanHz;
+    let p = 10 ** (-10 + 0.12 * Math.sin(i / 150));
+    for (const [hz, sr, db] of carriers) {
+      const d = Math.abs(f - hz), half = sr * 0.6, edge = sr * 0.1;
+      if (d < half) p += 10 ** ((-100 + db) / 10) * (d < half - 2 * edge ? 1 : 0.5 * (1 + Math.cos(Math.PI * (d - half + 2 * edge) / (2 * edge))));
+    }
+    qoFrame[i] = 10 * Math.log10(p) + 10 * Math.log10(-Math.log(Math.random() || 1e-9)) * 0.35;
+  }
+  return qoFrame;
+}
+const mhz = (hz) => (hz / 1e6).toFixed(3);
+chan.on('channel', (e) => {
+  const d = e.detail;
+  log('#docChanLog', `ham:channel → RX ${mhz(d.rxHz)} MHz · TX ${d.txHz ? `${mhz(d.txHz)} MHz` : '—'}${d.sr ? ` · ${HamUI.formatSymbolRate(d.sr)}/s` : ''}${d.rxOnly ? ' · receive only' : ''}`);
+});
+chan.setDial(10494.75e6);
+chan.selectChannel(10494.75e6, { sr: 333e3 });
+let qoTick = 0;
+
 setInterval(() => {
   const f = sim.next();
+  if (++qoTick % 3 === 0) chan.update(qoSpectrum(), QO);
   spec.update(f, range);
   wf.push(f, range);
   pan.push(f, range);

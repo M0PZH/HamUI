@@ -12,7 +12,7 @@
   touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
 }
-.ham-spectrum { height: 200px; }
+.ham-spectrum { height: calc(200px + var(--ham-channel-strip, 0px)); }
 .ham-waterfall { height: 220px; }
 .ham-spectrum > canvas, .ham-waterfall > canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .ham-waterfall > canvas.ham-wf-image { image-rendering: auto; }
@@ -36,6 +36,29 @@
 .ham-spectrum.is-grabbing, .ham-waterfall.is-grabbing { cursor: ew-resize; }
 .ham-spectrum.is-over-pan { cursor: grab; }
 .ham-spectrum.is-over-pan.is-dragging { cursor: grabbing; }
+.ham-spectrum.is-over-channel { cursor: pointer; }
+
+/* channel strip tooltip (the strip itself is drawn on the canvas) */
+.ham-channel-tip {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, calc(-100% - 6px));
+  padding: 5px 8px;
+  border: 1px solid var(--ham-border-strong);
+  border-radius: var(--ham-radius-sm);
+  background: var(--ham-surface-2);
+  box-shadow: var(--ham-shadow);
+  color: var(--ham-fg-muted);
+  font: 11px/1.45 var(--ham-font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.ham-channel-tip[hidden] { display: none; }
+.ham-channel-tip b { color: var(--ham-fg); font-weight: 500; }
+.ham-channel-tip-label { color: var(--ham-fg); font-family: var(--ham-font-ui); font-weight: 500; }
+.ham-channel-tip .is-busy { color: var(--ham-warn); }
+.ham-spectrum.is-dragging .ham-channel-tip { display: none; }
 
 .ham-panadapter { display: flex; flex-direction: column; min-width: 0; }
 .ham-panadapter > .ham-waterfall { border-top: 1px solid var(--ham-border); }

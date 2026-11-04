@@ -15,7 +15,7 @@
     .rx > .const { grid-area: const; padding: var(--ham-space-4); border-right: 1px solid var(--ham-border); display: flex; flex-direction: column; gap: var(--ham-space-3); min-width: 0; }
     .rx > .side { grid-area: side; padding: var(--ham-space-4) var(--ham-space-5); display: flex; flex-direction: column; gap: var(--ham-space-4); min-width: 0; }
     .rx > .chan { grid-area: chan; border-top: 1px solid var(--ham-border); min-width: 0; }
-    .rx .ham-spectrum { height: 170px; }
+    .rx .ham-spectrum { height: calc(170px + var(--ham-channel-strip, 0px)); }
     .rx .ham-waterfall { height: 110px; }
     .ham-constellation { border-radius: var(--ham-radius-md); }
     .chan tbody tr { cursor: pointer; }
@@ -43,6 +43,7 @@
       <span class="ham-spacer"></span>
       <span class="ham-kv">LNB <b>9750.000</b></span>
       <span class="ham-kv">IF <b id="ifFreq">—</b></span>
+      <span class="ham-kv">TX <b id="txFreq">—</b></span>
       <span class="ham-kv">UTC <b><time data-ham="clock"></time></b></span>
     </div>
 
@@ -50,7 +51,7 @@
       <div class="scope">
         <div class="ham-scope-bar">
           <span class="ham-label">Wideband transponder</span>
-          <span class="ham-faint ham-text-sm" id="hint">Click a carrier to tune · pinch to zoom</span>
+          <span class="ham-faint ham-text-sm" id="hint">Click a carrier or a channel to tune · pinch to zoom</span>
           <span class="ham-spacer"></span>
           <div class="ham-vfo"><div id="freq" data-ham="frequency" data-value="10491500000" data-digits="11" data-max="99999999999" data-size="sm" data-editable="false" data-label="Downlink frequency"></div></div>
         </div>
@@ -115,15 +116,15 @@ const get = (s) => HamUI.getInstance(s);
 const pan = get('#pan'), iq = get('#iq'), mer = get('#mer'), trend = get('#trend'), lock = get('#lock'), freq = get('#freq');
 
 $('#themeBtn').onclick = () => HamUI.theme.toggle();
-if (matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'Tap a carrier to tune · pinch to zoom';
+if (matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'Tap a carrier or a channel to tune · pinch to zoom';
 
 /* Simulated transponder: carriers with their own symbol rate, MODCOD and link quality */
 const CHANNELS = [
   { hz: 10491500000, sr: 1500000, modcod: 'QPSK 4/5', mer: 11.2, service: 'QO-100 Beacon', provider: 'AMSAT-DL', video: 'H.264 1280×720' },
+  { hz: 10493250000, sr: 1000000, modcod: '16APSK 3/4', mer: 13.4, service: 'IZ1AAA HD', provider: 'IZ1AAA', video: 'H.265 1920×1080' },
   { hz: 10494750000, sr: 333000, modcod: 'QPSK 2/3', mer: 8.6, service: 'N0CALL', provider: 'N0CALL', video: 'H.265 1280×720' },
   { hz: 10495250000, sr: 333000, modcod: '8PSK 2/3', mer: 7.4, service: 'DL0ABC', provider: 'DL0ABC', video: 'H.265 1280×720' },
   { hz: 10496000000, sr: 500000, modcod: 'QPSK 3/4', mer: 6.8, service: 'G0XYZ ATV', provider: 'G0XYZ', video: 'H.264 1024×576' },
-  { hz: 10497750000, sr: 1000000, modcod: '16APSK 3/4', mer: 13.4, service: 'IZ1AAA HD', provider: 'IZ1AAA', video: 'H.265 1920×1080' },
   { hz: 10499000000, sr: 125000, modcod: 'QPSK 1/2', mer: 3.6, service: 'EA4ZZZ', provider: 'EA4ZZZ', video: 'H.265 640×360' },
 ];
 const LNB = 9750000000;
@@ -135,12 +136,14 @@ const rows = $('#chanTable tbody');
 rows.innerHTML = CHANNELS.map((c, i) => `<tr data-i="${i}"><td class="ham-num">${(c.hz / 1e6).toFixed(3)}</td><td class="ham-num">${c.sr / 1000}</td><td>${c.modcod}</td><td>${c.service}</td><td class="ham-num">${c.mer.toFixed(1)}</td></tr>`).join('');
 rows.addEventListener('click', (e) => { const tr = e.target.closest('tr'); if (tr) tune(CHANNELS[+tr.dataset.i].hz); });
 
-function tune(hz) {
+function tune(hz, source) {
   current = CHANNELS.filter((c) => Math.abs(hz - c.hz) <= c.sr * 0.6)
     .sort((a, b) => Math.abs(hz - a.hz) - Math.abs(hz - b.hz))[0] || null;
   const f = current ? current.hz : hz;
   freq.set(f, { silent: true });
   pan.setDial(f);
+  // tuned from a carrier or the table: show its channel (a strip pick has already chosen one)
+  if (source !== 'channel') showTx(pan.selectChannel(current ? f : null, { sr: current?.sr }));
   pan.setPassband(current ? [-current.sr * 0.6, current.sr * 0.6] : [-150000, 150000]);
   $('#ifFreq').textContent = ((f - LNB) / 1e6).toFixed(3);
   sim.present = !!current;
@@ -154,7 +157,15 @@ function tune(hz) {
   [...rows.children].forEach((tr) => tr.classList.toggle('is-active', current === CHANNELS[+tr.dataset.i]));
   iq.clear();
 }
-pan.on('tune', (e) => { e.preventDefault(); tune(e.detail.hz); });
+pan.on('tune', (e) => { e.preventDefault(); tune(e.detail.hz, e.detail.source); });
+
+/* channel strip: a click sets RX (via ham:tune above) and the uplink for TX */
+const PLAN = HamUI.bandplans.qo100Wideband;
+pan.setChannels(PLAN);
+function showTx(ch) {
+  $('#txFreq').textContent = !ch ? '—' : ch.rxOnly ? 'RX only' : ((ch.hz + PLAN.offsetHz) / 1e6).toFixed(3);
+}
+pan.on('channel', (e) => showTx(e.detail.channel));
 $('#reacq').onclick = () => { sim.acquire(); iq.clear(); };
 get('#persist').on('change', (e) => { iq.options.persistence = +e.detail.value; });
 $('#ideal').onchange = (e) => { iq.options.showIdeal = e.target.checked; };

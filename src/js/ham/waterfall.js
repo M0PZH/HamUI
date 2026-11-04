@@ -16,6 +16,7 @@ export class Waterfall extends ScopeBase {
   constructor(el, options = {}) {
     super(el, options, DEFAULTS, 'ham-waterfall');
     this.drawsLabels = false;
+    this.outlineChannel = true; // the selected channel's edges
     this.n = 0;
     this.hist = null;
     this.head = 0;      // next write row

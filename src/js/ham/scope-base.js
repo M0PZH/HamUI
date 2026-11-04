@@ -27,7 +27,8 @@ export const SCOPE_DEFAULTS = {
   label: null,          // accessible name
 };
 
-const COLOR_TOKENS = ['inset', 'grid', 'trace', 'trace-fill', 'peak', 'passband', 'dial', 'fg', 'fg-muted', 'fg-faint', 'accent', 'tx', 'rx', 'warn', 'border'];
+const COLOR_TOKENS = ['inset', 'surface', 'grid', 'trace', 'trace-fill', 'peak', 'passband', 'dial', 'fg', 'fg-muted', 'fg-faint',
+  'accent', 'accent-line', 'tx', 'rx', 'warn', 'border', 'border-strong', 'channel', 'channel-busy'];
 
 export class ScopeBase extends Component {
   constructor(el, options, defaults, className) {
@@ -43,6 +44,8 @@ export class ScopeBase extends Component {
     this.dial = o.dial;
     this.passband = o.passband;
     this.markers = o.markers || [];
+    this.channel = null;       // selected channel {hz, width, ...} (see Spectrum channels)
+    this.transmitting = false; // paints the selected channel in the TX color
     this.hoverX = -1; // CSS px within element, -1 = none
     this.colors = {};
     this.font = 'monospace';
@@ -61,7 +64,7 @@ export class ScopeBase extends Component {
       this.onDestroy(attachScopeGestures(this.el, {
         zoom: (f, x) => this.view.zoomAt(f, this.clientXToHz(x)),
         pan: (dx) => this.view.pan((dx / this._cssWidth()) * this.view.span),
-        tap: (e) => this.tuneTo(this.clientXToHz(e.clientX)),
+        tap: (e) => this._tap(e),
         grab: (x, y) => this._grabTune(x, y),
         doubleTap: () => this.view.reset(),
         hover: (x, y) => this._hover(x, y),
@@ -118,9 +121,23 @@ export class ScopeBase extends Component {
 
   onDataRangeChange() {}
 
-  setDial(hz) { this.dial = hz; this.invalidate(); }
+  setDial(hz) {
+    this.dial = hz;
+    // tuning away from the selected channel deselects it
+    if (this.channel && hz != null && Math.abs(hz - this.channel.hz) > this.channel.width / 2) this.channel = null;
+    this.invalidate();
+  }
   setPassband(pb) { this.passband = pb; this.invalidate(); }
   setMarkers(markers) { this.markers = markers || []; this.invalidate(); }
+
+  /** Highlight a channel ({hz, width}) without tuning, or pass null to clear. */
+  setChannel(ch) { this.channel = ch || null; this.invalidate(); }
+  getChannel() { return this.channel; }
+
+  /** Show the selected channel as transmitting (TX color). */
+  setTransmitting(on) { this.transmitting = !!on; this.invalidate(); }
+
+  _tap(e) { this.tuneTo(this.clientXToHz(e.clientX)); }
 
   clientXToHz(clientX) {
     const r = this.el.getBoundingClientRect();
@@ -228,6 +245,16 @@ export class ScopeBase extends Component {
       ctx.fillStyle = c.passband;
       ctx.fillRect(x0, 0, x1 - x0, H);
       ctx.globalAlpha = 1;
+    }
+    if (this.channel && this.outlineChannel) {
+      ctx.strokeStyle = this.transmitting ? c.tx : c['accent-line'];
+      ctx.lineWidth = dpr;
+      ctx.beginPath();
+      for (const hz of [this.channel.hz - this.channel.width / 2, this.channel.hz + this.channel.width / 2]) {
+        const x = Math.round(this.xOf(hz, W)) + 0.5;
+        ctx.moveTo(x, 0); ctx.lineTo(x, H);
+      }
+      ctx.stroke();
     }
     for (const m of this.markers) {
       const col = c[m.color] || m.color || c.warn;

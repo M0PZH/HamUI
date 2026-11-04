@@ -9,6 +9,7 @@ import { toast } from './components/toast.js';
 import { Spectrum } from './ham/spectrum.js';
 import { Waterfall } from './ham/waterfall.js';
 import { Panadapter } from './ham/panadapter.js';
+import { bandplans, formatSymbolRate } from './ham/channels.js';
 import { Meter, meterPresets } from './ham/meter.js';
 import { FrequencyDisplay } from './ham/frequency.js';
 import { Knob } from './ham/knob.js';
@@ -97,6 +98,7 @@ export {
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
   SignalSimulator, colormaps, format, attachScopeGestures, haptics, setScrollDirection,
   Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
+  bandplans, formatSymbolRate,
 };
 
 const HamUI = {
@@ -110,6 +112,7 @@ const HamUI = {
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
   SignalSimulator, colormaps, format, attachScopeGestures, haptics, setScrollDirection,
   Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
+  bandplans, formatSymbolRate,
 };
 
 export default HamUI;

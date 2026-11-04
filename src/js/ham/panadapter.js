@@ -16,9 +16,9 @@ export class Panadapter extends Component {
     const wfEl = this.el.querySelector(':scope > .ham-waterfall') || this.el.appendChild(h('div', { class: 'ham-waterfall' }));
     // minDb/maxDb set the spectrum scale; the waterfall uses wfMinDb/wfMaxDb
     // (its own defaults otherwise), since a good trace range is not a good color range.
-    const { spectrum: so = {}, waterfall: wo = {}, minDb, maxDb, wfMinDb, wfMaxDb, ...shared } = o;
+    const { spectrum: so = {}, waterfall: wo = {}, minDb, maxDb, wfMinDb, wfMaxDb, channels, ...shared } = o;
     const levels = (a, b) => ({ ...(a != null ? { minDb: a } : {}), ...(b != null ? { maxDb: b } : {}) });
-    this.spectrum = new Spectrum(specEl, { ...shared, ...levels(minDb, maxDb), ...so });
+    this.spectrum = new Spectrum(specEl, { ...shared, ...levels(minDb, maxDb), channels, ...so });
     this.waterfall = new Waterfall(wfEl, { ...shared, readout: false, ...levels(wfMinDb, wfMaxDb), ...wo, view: this.spectrum.view });
     this.view = this.spectrum.view;
 
@@ -27,6 +27,10 @@ export class Panadapter extends Component {
     this.listen(this.el, 'ham:tune', (e) => {
       if (o.autoDial === false) return;
       queueMicrotask(() => { if (!e.defaultPrevented) this.setDial(e.detail.hz); });
+    });
+    // the waterfall outlines the channel picked on the spectrum's channel strip
+    this.listen(this.el, 'ham:channel', (e) => {
+      queueMicrotask(() => { if (!e.defaultPrevented) this.waterfall.setChannel(this.spectrum.channel); });
     });
   }
 
@@ -41,6 +45,9 @@ export class Panadapter extends Component {
   setPassband(pb) { this.spectrum.setPassband(pb); this.waterfall.setPassband(pb); }
   setMarkers(m) { this.spectrum.setMarkers(m); this.waterfall.setMarkers(m); }
   setDragTune(mode) { this.spectrum.setDragTune(mode); this.waterfall.setDragTune(mode); }
+  setChannels(plan) { this.spectrum.setChannels(plan); this.waterfall.setChannel(this.spectrum.channel); }
+  selectChannel(hz, opts) { const ch = this.spectrum.selectChannel(hz, opts); this.waterfall.setChannel(ch); return ch; }
+  setTransmitting(on) { this.spectrum.setTransmitting(on); this.waterfall.setTransmitting(on); }
   setDataRange(start, span) { this.spectrum.setDataRange(start, span); this.waterfall.setDataRange(start, span); }
 
   destroy() {

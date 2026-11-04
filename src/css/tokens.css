@@ -38,6 +38,8 @@
   --ham-peak: rgba(227, 230, 235, 0.22);
   --ham-passband: var(--ham-accent-weak);
   --ham-dial: var(--ham-fg);
+  --ham-channel: var(--ham-border-strong);      /* channel strip slot */
+  --ham-channel-busy: var(--ham-fg-faint);      /* slot with a signal in it */
   --ham-wf-0: #0a0c10;
   --ham-wf-1: #10213a;
   --ham-wf-2: #17558c;
@@ -69,6 +71,8 @@
   --ham-grid: rgba(0, 0, 0, 0.06);
   --ham-trace-fill: rgba(28, 120, 184, 0.12);
   --ham-peak: rgba(20, 23, 28, 0.22);
+  --ham-channel: var(--ham-border-strong);
+  --ham-channel-busy: var(--ham-fg-faint);
   --ham-wf-0: #ffffff;
   --ham-wf-1: #dbe9f5;
   --ham-wf-2: #7fb3dc;
@@ -100,6 +104,8 @@
     --ham-grid: rgba(0, 0, 0, 0.06);
     --ham-trace-fill: rgba(28, 120, 184, 0.12);
     --ham-peak: rgba(20, 23, 28, 0.22);
+    --ham-channel: var(--ham-border-strong);
+    --ham-channel-busy: var(--ham-fg-faint);
     --ham-wf-0: #ffffff;
     --ham-wf-1: #dbe9f5;
     --ham-wf-2: #7fb3dc;

@@ -47,6 +47,7 @@
     <a href="#spectrum">Spectrum</a>
     <a href="#waterfall">Waterfall</a>
     <a href="#panadapter">Panadapter</a>
+    <a href="#channels">Channel strip</a>
     <a href="#gestures">Gestures</a>
     <a href="#haptics">Haptics</a>
     <a href="#knob">Knob</a>
@@ -416,6 +417,42 @@ pan.on('tune', e =&gt; …);                // {hz, source: 'click' | 'drag'}
 pan.setDragTune('passband');           // 'press' (default) | 'passband' | 'always' | false</code></pre>
       </div>
       <div class="doc-log" id="docPanLog"></div>
+    </section>
+
+    <section class="doc-section" id="channels">
+      <h2>Channel strip</h2>
+      <p>Give a spectrum a <code>channels</code> plan and it draws the channels in rows under the trace, on the same frequency view. Hover a channel to see its downlink, uplink and symbol rate. A click emits a cancelable <code>ham:channel</code> with the RX and TX frequencies, then highlights the channel and tunes the dial to it. A click never keys the transmitter. Dragging the strip pans, the same as dragging the frequency scale. Channels with a signal in them are drawn darker (<code>occupancy: 'auto'</code>). Keyboard: <kbd>[</kbd> <kbd>]</kbd> step through the channels in a row, <kbd>↑</kbd> <kbd>↓</kbd> change row.</p>
+      <div class="doc-example">
+        <div class="doc-preview is-flush">
+          <div id="docChannels" data-ham="spectrum" data-start-hz="10490000000" data-span-hz="10000000" data-min-db="-106" data-max-db="-74" data-db-step="5" data-tune-step="1000" data-min-span="500000"></div>
+        </div>
+        <pre><code>const spec = new HamUI.Spectrum('#spec', {
+  startHz: 10490e6, spanHz: 10e6,
+  channels: HamUI.bandplans.qo100Wideband,     // or your own plan:
+  // channels: {
+  //   offsetHz: -8089.5e6,                    // TX = RX + offset, or txHz: (ch) =&gt; hz
+  //   lanes: [{ label: '333 kS', sr: 333e3, from: 10492.75e6, to: 10499.25e6, step: 0.5e6 },
+  //           { label: 'Custom', width: 25e3, slots: [145.5e6, { hz: 145.525e6, rxOnly: true }] }],
+  //   fixed: [{ hz: 10491.5e6, width: 1.8e6, label: 'Beacon', rxOnly: true }],
+  //   regions: [{ from: 10490.5e6, to: 10492.5e6, label: 'Beacon' }],
+  //   select: 'rx+tx',                        // 'rx': clicks leave TX alone (txHz is null)
+  //   occupancy: 'auto',                      // false, or (ch) =&gt; boolean
+  // },
+});
+spec.on('channel', (e) =&gt; radio.set(e.detail));  // {rxHz, txHz, sr, width, label, lane, rxOnly, source}
+spec.selectChannel(10494.75e6, { sr: 333e3 }); // highlight only: no event, no tune
+spec.setTransmitting(true);                     // the selected channel turns red</code></pre>
+      </div>
+      <div class="doc-log" id="docChanLog"></div>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>lanes</td><td>[]</td><td>Rows of channels: <code>slots</code> (Hz or objects) or <code>from</code>/<code>to</code>/<code>step</code>, with <code>width</code> (default the step), <code>sr</code>, <code>label</code></td></tr>
+        <tr><td>fixed</td><td>[]</td><td>Channels that span every row, e.g. a beacon; <code>rxOnly</code> draws them dashed and gives no TX frequency</td></tr>
+        <tr><td>regions</td><td>[]</td><td>Labelled bandplan segments under the rows</td></tr>
+        <tr><td>offsetHz / txHz</td><td>null</td><td>How the TX frequency follows from the channel</td></tr>
+        <tr><td>select</td><td>'rx+tx'</td><td><code>'rx'</code> leaves <code>txHz</code> null</td></tr>
+        <tr><td>occupancy / occupancyDb</td><td>'auto' / 3</td><td>Marks a channel occupied when its mean level is this far over the noise floor</td></tr>
+        <tr><td>laneHeight</td><td>14 (18 on touch)</td><td>Row height in px. The spectrum grows by the strip's height, set in <code>--ham-channel-strip</code></td></tr>
+      </tbody></table>
     </section>
 
     <section class="doc-section" id="gestures">

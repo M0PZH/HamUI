@@ -34,7 +34,7 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 
 | Name | `data-ham` | Notes |
 | --- | --- | --- |
-| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers, `dragTune` |
+| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers, `dragTune`, `channels` (channel strip; `HamUI.bandplans.qo100Wideband`) |
 | Waterfall | `waterfall` | `push(bins, range?)`, colormaps (`theme`, `viridis`, `inferno`, `plasma`, `turbo`, `gray`), `autoLevel()` |
 | Panadapter | `panadapter` | spectrum + waterfall sharing one `FrequencyView` |
 | Meter | `meter` | `type`: `s`, `power`, `swr`, `alc`, `custom` |
@@ -55,7 +55,7 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 Knobs and frequency digits follow the fingers on a trackpad (push up to increase), correcting for macOS natural scrolling;
 `HamUI.setScrollDirection('natural' | 'traditional')` overrides the detection.
 
-All events are bubbling `ham:*` CustomEvents: `ham:tune`, `ham:viewchange`, `ham:hover`, `ham:change`, `ham:ptt`, `ham:themechange`.
+All events are bubbling `ham:*` CustomEvents: `ham:tune`, `ham:channel`, `ham:viewchange`, `ham:hover`, `ham:change`, `ham:ptt`, `ham:themechange`.
 
 `HamUI.SignalSimulator` produces plausible band activity (FT8, JS8, CW, carriers) and
 `HamUI.DvbS2Simulator` DVB-S2 symbols and lock sequences, for demos and tests.
