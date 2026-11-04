@@ -433,6 +433,7 @@ pan.setDragTune('passband');           // 'press' (default) | 'passband' | 'alwa
             <tr><td>Mouse / touch</td><td>Double-click</td><td>Reset view</td></tr>
             <tr><td>Touch</td><td>Two-finger pinch</td><td>Zoom + pan</td></tr>
             <tr><td>Keyboard</td><td>← → · + − · Home</td><td>Pan · zoom · reset</td></tr>
+            <tr><td>Trackpad / wheel</td><td>Up · down over a knob or frequency digit</td><td>Increase · decrease, following the fingers. macOS natural scrolling is taken into account (Safari reports it; other browsers assume the macOS default). Override with <code>HamUI.setScrollDirection('natural' | 'traditional' | 'auto')</code>.</td></tr>
             <tr><td colspan="3" class="ham-faint">Other drag modes via <code>dragTune</code>: <code>'passband'</code> (drag the passband to tune, drag elsewhere to pan), <code>'always'</code> (every drag moves the tune), <code>false</code> (drag pans, click tunes).</td></tr>
           </tbody>
         </table>

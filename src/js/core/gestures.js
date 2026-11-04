@@ -147,20 +147,44 @@ export function attachScopeGestures(el, h) {
   };
 }
 
+// Value controls (knobs, frequency digits) should follow the fingers: push up
+// to increase. With macOS "natural scrolling" (on by default) a push up arrives
+// as a downward deltaY, so it has to be flipped. Safari reports the setting per
+// event (webkitDirectionInvertedFromDevice); elsewhere assume the macOS default.
+let scrollDirection = 'auto'; // 'auto' | 'natural' | 'traditional'
+const IS_MAC = typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+
+/**
+ * Tell HamUI how the system scrolls when the browser cannot report it:
+ * 'natural' (content follows the fingers, the macOS default), 'traditional',
+ * or 'auto' (Safari's per-event flag, else natural on macOS, traditional elsewhere).
+ */
+export function setScrollDirection(mode) {
+  scrollDirection = mode === 'natural' || mode === 'traditional' ? mode : 'auto';
+}
+
+function isNatural(e) {
+  if (scrollDirection !== 'auto') return scrollDirection === 'natural';
+  if (typeof e.webkitDirectionInvertedFromDevice === 'boolean') return e.webkitDirectionInvertedFromDevice;
+  return IS_MAC;
+}
+
 /**
  * Accumulates wheel deltas into discrete steps so trackpads (many small
- * deltas) and mice (few large ones) tune at a similar rate.
+ * deltas) and mice (few large ones) tune at a similar rate. Positive steps
+ * mean the fingers (or wheel) moved up: increase.
  */
 export function wheelStepper(pxPerStep = 40) {
   let acc = 0;
   return (e) => {
-    const d = e.deltaMode === 1 ? e.deltaY * pxPerStep : e.deltaY;
+    let d = e.deltaMode === 1 ? e.deltaY * pxPerStep : e.deltaY;
+    if (isNatural(e)) d = -d;
     acc += d;
     let steps = 0;
     while (Math.abs(acc) >= pxPerStep) {
       steps += acc < 0 ? 1 : -1;
       acc += acc < 0 ? pxPerStep : -pxPerStep;
     }
-    return steps; // positive = scroll up = increase
+    return steps;
   };
 }

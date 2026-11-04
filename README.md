@@ -52,6 +52,9 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 `HamUI.haptics` gives haptic feedback at detents (frequency steps, knob steps, segment changes, PTT). The default backend is
 `navigator.vibrate` (Android); `HamUI.haptics.use(fn)` routes it elsewhere, e.g. to a Tauri command that calls the macOS trackpad.
 
+Knobs and frequency digits follow the fingers on a trackpad (push up to increase), correcting for macOS natural scrolling;
+`HamUI.setScrollDirection('natural' | 'traditional')` overrides the detection.
+
 All events are bubbling `ham:*` CustomEvents: `ham:tune`, `ham:viewchange`, `ham:hover`, `ham:change`, `ham:ptt`, `ham:themechange`.
 
 `HamUI.SignalSimulator` produces plausible band activity (FT8, JS8, CW, carriers) and

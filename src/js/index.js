@@ -26,7 +26,7 @@ import * as dvbs2 from './ham/dvbs2.js';
 import { getTheme, setTheme, toggleTheme, resolvedTheme, onThemeChange, readTokens } from './core/theme.js';
 import { colormaps } from './core/colormap.js';
 import * as format from './core/format.js';
-import { attachScopeGestures } from './core/gestures.js';
+import { attachScopeGestures, setScrollDirection } from './core/gestures.js';
 import { haptics } from './core/haptics.js';
 
 /** data-ham="<name>" -> component class */
@@ -95,7 +95,7 @@ export {
   Clock, TxIndicator, Ptt,
   Tabs, Modal, toast,
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
-  SignalSimulator, colormaps, format, attachScopeGestures, haptics,
+  SignalSimulator, colormaps, format, attachScopeGestures, haptics, setScrollDirection,
   Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
 };
 
@@ -108,7 +108,7 @@ const HamUI = {
   Clock, TxIndicator, Ptt,
   Tabs, Modal, toast,
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
-  SignalSimulator, colormaps, format, attachScopeGestures, haptics,
+  SignalSimulator, colormaps, format, attachScopeGestures, haptics, setScrollDirection,
   Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
 };
 
