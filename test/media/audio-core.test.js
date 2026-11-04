@@ -140,3 +140,30 @@ test('AudioStreamPlayer: arrival times feed the jitter estimate; targets up to 1
   fixed.setTarget(2); assert.equal(fixed.minTarget, 1);
   assert.equal(fixed.effTarget, 1);
 });
+
+test('AudioRing: a gap in the stream time is played as silence; a large skip is not', () => {
+  const ring = new AudioRing({ inRate: 48000, outRate: 48000, target: 0.04 });
+  const one = (n) => [new Float32Array(n).fill(1)];
+  ring.push(one(960), 0);                 // 20 ms
+  ring.push(one(960), 1800 + 900);        // 10 ms later than back to back
+  assert.equal(ring.stats.gaps, 1);
+  assert.ok(Math.abs(ring.stats.gapSeconds - 0.01) < 1e-9);
+  assert.ok(Math.abs(ring.fill - 0.05) < 1e-9);
+  ring.push(one(960), 2700 + 1800 + 1);   // 1 tick off: rounding, no gap
+  assert.equal(ring.stats.gaps, 1);
+  ring.push(one(960), 10 * 90000);        // 10 s ahead: a new timeline, played on
+  assert.equal(ring.stats.gaps, 1);
+  const off = new AudioRing({ fillGaps: false });
+  off.push(one(960), 0);
+  off.push(one(960), 9000);
+  assert.equal(off.stats.gaps, 0);
+  // the silence really is silent: read through it
+  const r = new AudioRing({ inRate: 48000, outRate: 48000, target: 0.001 });
+  r.push(one(480), 0);
+  r.push(one(480), 900 + 900);            // 10 ms gap
+  const out = [new Float32Array(1440)];
+  r.read(out, 1440);
+  assert.equal(out[0][100], 1);
+  assert.equal(out[0][700], 0);
+  assert.equal(out[0][1200], 1);
+});

@@ -6,7 +6,7 @@
 //     offsetHz: -8089.5e6,            // TX = RX + offset, or txHz: (ch) => hz
 //     lanes: [{ label: '333 kS', sr: 333e3, width: 0.5e6, from, to, step } | { slots: [hz | {hz, ...}] }],
 //     fixed: [{ hz, width, label, sr, rxOnly }],
-//     regions: [{ from, to, label }],
+//     regions: [{ from, to, label, data }],
 //     meta: { name, version, date, source },  // optional, informational
 //     select: 'rx+tx' | 'rx',         // whether a click hands out a TX frequency
 //     occupancy: 'auto' | false | (ch) => boolean,
@@ -50,7 +50,7 @@ export function normalizePlan(p) {
     };
   });
   const fixed = (p.fixed || []).map((s) => channel(s, { lane: null, fixed: true }));
-  const regions = (p.regions || []).map((r) => ({ from: r.from, to: r.to, label: r.label ?? '' }));
+  const regions = (p.regions || []).map((r) => ({ from: r.from, to: r.to, label: r.label ?? '', data: r.data }));
   return {
     lanes,
     fixed,
@@ -63,6 +63,11 @@ export function normalizePlan(p) {
     occupancyDb: p.occupancyDb ?? 3,
     laneHeight: p.laneHeight ?? null,
   };
+}
+
+/** The region of a plan (raw or normalized) containing `hz`, or null. */
+export function regionAt(plan, hz) {
+  return plan?.regions?.find((r) => hz >= r.from && hz < r.to) ?? null;
 }
 
 /** The TX frequency for a channel, or null (receive only, or no offset given). */
@@ -105,7 +110,48 @@ const qo100Wideband2021v3 = deepFreeze({
   ],
 });
 
+// The AMSAT-DL plan carries no version number, so the key is its year.
+// Region and fixed-entry `data.mode` is the mode a click there suggests.
+const nbSeg = (from, to, label, mode) => ({ from: from * MHz, to: to * MHz, label, data: { mode } });
+const qo100Narrowband2020 = deepFreeze({
+  meta: {
+    name: 'QO-100 narrowband transponder',
+    version: null,
+    date: '2020-02-14',
+    source: 'AMSAT-DL NB transponder bandplan (https://amsat-dl.org/en/p4-a-nb-transponder-bandplan-and-operating-guidelines)',
+    note: 'Downlink frequencies; uplink = downlink - 8089.5 MHz (2400.0-2400.5 MHz)',
+  },
+  offsetHz: -8089.5 * MHz,
+  select: 'rx',
+  occupancy: false,
+  fixed: [
+    { hz: 10489.5025 * MHz, width: 5e3, label: 'CW beacon', rxOnly: true, data: { mode: 'cw' } },
+    { hz: 10489.750 * MHz, width: 5e3, label: 'PSK beacon', rxOnly: true, data: { mode: 'usb' } },
+    { hz: 10489.855 * MHz, width: 4e3, label: 'Bcst', data: { mode: 'usb' } },
+    { hz: 10489.860 * MHz, width: 4e3, label: 'Emergency', data: { mode: 'usb' } },
+    { hz: 10489.9935 * MHz, width: 6e3, label: 'MM beacon', rxOnly: true, data: { mode: 'usb' } },
+    { hz: 10489.9985 * MHz, width: 3e3, label: 'CW beacon', rxOnly: true, data: { mode: 'cw' } },
+  ],
+  lanes: [],
+  regions: [
+    nbSeg(10489.500, 10489.505, 'Beacon', 'cw'),
+    nbSeg(10489.505, 10489.540, 'CW', 'cw'),
+    nbSeg(10489.540, 10489.580, 'Digi 500 Hz', 'usb'),
+    nbSeg(10489.580, 10489.650, 'Digi 2.7 kHz', 'usb'),
+    nbSeg(10489.650, 10489.745, 'SSB', 'usb'),
+    nbSeg(10489.745, 10489.755, 'Beacon', 'usb'),
+    nbSeg(10489.755, 10489.850, 'SSB', 'usb'),
+    nbSeg(10489.850, 10489.8575, 'Bcst', 'usb'),
+    nbSeg(10489.8575, 10489.865, 'Emerg', 'usb'),
+    nbSeg(10489.865, 10489.990, 'Mixed · contest', 'usb'),
+    nbSeg(10489.990, 10489.997, 'MM beacon', 'usb'),
+    nbSeg(10489.997, 10490.000, 'Beacon', 'cw'),
+  ],
+});
+
 export const bandplans = Object.freeze({
   qo100Wideband2021v3,
   qo100Wideband: qo100Wideband2021v3, // latest
+  qo100Narrowband2020,
+  qo100Narrowband: qo100Narrowband2020, // latest
 });

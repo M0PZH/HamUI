@@ -22,6 +22,15 @@
 // resumes with the next frame and the clock follows its PTS.
 // At the start, video begins at the first key frame and audio at the same
 // stream time. Audio-only services restart on the next audio frame.
+//
+// Epochs (optional). A sender that numbers its timelines puts `epoch` on
+// every frame. Then a NEW epoch starts a new timeline (as above, without
+// waiting for a flag or a jump; frames of the previous epoch that still
+// arrive are dropped), and the discontinuity flag with the SAME epoch means
+// data was dropped but the timeline is intact: video skips to the next key
+// frame (`resync`: reset the decoder there), audio carries on, and the PTS
+// step across the drop is not taken as a jump. Frames without `epoch` follow
+// the rules above.
 import { PtsUnwrapper, PTS_HZ } from './pts.js';
 
 export const SYNC_DEFAULTS = Object.freeze({
@@ -35,7 +44,7 @@ export class SyncCore {
     this.unwrapper = new PtsUnwrapper();
     this.hasVideo = true;    // the program has a video stream this client decodes
     this.hasAudio = true;    // ... an audio stream this client plays
-    this.stats = { timelines: 0, videoSkipped: 0, videoDiscontinuities: 0, audioGaps: 0, audioDropped: 0, jumps: 0 };
+    this.stats = { timelines: 0, videoSkipped: 0, videoDiscontinuities: 0, audioGaps: 0, audioDropped: 0, jumps: 0, epochs: 0, videoResyncs: 0, stale: 0 };
     this.reset();
   }
 
@@ -46,7 +55,25 @@ export class SyncCore {
     this.lastVideo = null;
     this.lastAudioEnd = null;
     this.held = [];
+    this.videoResync = false;  // same-epoch drop: video waits for a key frame, audio plays on
+    this.epoch = null;         // current epoch, when the sender numbers its timelines
+    this.prevEpoch = null;
     this.unwrapper.reset();
+  }
+
+  /** Classify a frame's epoch: null (none, or nothing new), 'new', 'drop' or 'stale'. */
+  _epoch(f) {
+    const e = f.epoch;
+    if (e == null) return null;
+    if (this.epoch == null) { this.epoch = e; return null; }
+    if (e === this.epoch) return f.discontinuity ? 'drop' : null;
+    if (e === this.prevEpoch) { this.stats.stale++; return 'stale'; }
+    const prev = this.epoch;
+    this.reset();
+    this.epoch = e;
+    this.prevEpoch = prev;
+    this.stats.epochs++;
+    return 'new';
   }
 
   _begin(ticks) {
@@ -65,49 +92,66 @@ export class SyncCore {
   /** Start waiting for a new timeline (both streams). */
   _restart() {
     this.waiting = true;
+    this.videoResync = false;
     this.lastAudioEnd = null;
   }
 
   /**
    * An encoded video AU arrived.
-   * @param {{pts:number|null, dts:number|null, key:boolean, discontinuity:boolean}} f
-   * @returns {{action:'decode'|'drop', ticks?:number, decodeTicks?:number, timeline?:boolean, release:Array}}
+   * @param {{pts:number|null, dts:number|null, key:boolean, discontinuity:boolean, epoch?:number}} f
+   * @returns {{action:'decode'|'drop', ticks?:number, decodeTicks?:number, timeline?:boolean, resync?:boolean, release:Array}}
    *   ticks: unwrapped PTS (presentation), decodeTicks: unwrapped DTS;
    *   timeline: a new timeline starts with this key frame: reset the decoder,
    *   drop decoded frames, flush the audio buffer, then decode `release`
    *   (held audio, in order) and this AU.
+   *   resync: video data was dropped (same epoch): reset the decoder and
+   *   decode from this key frame; the timeline and the audio carry on.
    */
   video(f) {
+    const ep = this._epoch(f);
+    if (ep === 'stale') return { action: 'drop', release: [] };
     const raw = f.pts ?? f.dts;
     if (raw == null) return { action: 'drop', release: [] };
     const ticks = this.unwrapper.unwrap(raw);
     const decodeTicks = f.dts == null ? ticks : this.unwrapper.unwrap(f.dts);
-    const jumped = this.lastVideo != null && Math.abs(ticks - this.lastVideo) > this.o.jump * PTS_HZ;
-    if (f.discontinuity) this.stats.videoDiscontinuities++;
-    if (jumped) this.stats.jumps++;
-    if ((f.discontinuity || jumped) && !this.waiting) this._restart();
+    if (ep === 'drop') {
+      if (!this.waiting) this.videoResync = true;
+    } else {
+      const jumped = this.lastVideo != null && Math.abs(ticks - this.lastVideo) > this.o.jump * PTS_HZ;
+      if (f.discontinuity) this.stats.videoDiscontinuities++;
+      if (jumped) this.stats.jumps++;
+      if ((f.discontinuity || jumped) && !this.waiting) this._restart();
+    }
     this.lastVideo = ticks;
     if (this.waiting) {
       if (!f.key) { this.stats.videoSkipped++; return { action: 'drop', release: [] }; }
       return { action: 'decode', ticks, decodeTicks, timeline: true, release: this._begin(ticks) };
+    }
+    if (this.videoResync) {
+      if (!f.key) { this.stats.videoSkipped++; return { action: 'drop', release: [] }; }
+      this.videoResync = false;
+      this.stats.videoResyncs++;
+      return { action: 'decode', ticks, decodeTicks, timeline: false, resync: true, release: [] };
     }
     return { action: 'decode', ticks, decodeTicks, timeline: false, release: [] };
   }
 
   /**
    * An encoded audio frame arrived (only while audio is played).
-   * @param {{pts:number|null, discontinuity:boolean}} f
+   * @param {{pts:number|null, discontinuity:boolean, epoch?:number}} f
    * @param {number} durationTicks  frame length in ticks (0 if unknown)
    * @returns {{action:'decode'|'hold'|'drop', ticks?:number, timeline?:boolean, release:Array}}
    *   timeline: (audio-only) a new timeline starts with this frame: flush the audio buffer.
    *   Held frames come back in a later result's `release` as {f, ticks}.
    */
   audio(f, durationTicks = 0) {
+    const ep = this._epoch(f);
+    if (ep === 'stale') return { action: 'drop', release: [] };
     const ticks = f.pts == null ? this.lastAudioEnd : this.unwrapper.unwrap(f.pts);
     if (ticks == null) return { action: 'drop', release: [] };
     const expected = this.lastAudioEnd;
     this.lastAudioEnd = ticks + durationTicks;
-    const jumped = expected != null && Math.abs(ticks - expected) > this.o.jump * PTS_HZ;
+    const jumped = ep !== 'drop' && expected != null && Math.abs(ticks - expected) > this.o.jump * PTS_HZ;
     if (jumped) { this.stats.jumps++; if (!this.waiting) this._restart(); }
     else if (f.discontinuity) this.stats.audioGaps++;
 

@@ -3,6 +3,7 @@
 //   trackpad pinch      -> zoom around the pointer (wheel+ctrlKey in Chromium/Firefox,
 //                          gesture* events in Safari)
 //   two-finger swipe →← -> pan;  vertical swipe is left to the page
+//                          (or h.wheel takes it: wheel-to-tune)
 //   ctrl/⌘ + wheel      -> zoom (mouse)
 //   shift + wheel       -> pan (mouse)
 //   drag                -> pan, unless h.grab takes it (drag-to-tune)
@@ -22,6 +23,7 @@ const DOUBLE_MS = 300;
  *        called on a one-finger press; return a handler to take the drag over instead of panning.
  *        `press` runs at once for mouse and pen, and for touch on a tap or when the drag starts
  *        (so a vertical swipe can still scroll the page); a grab with `press` replaces h.tap.
+ * @param {(e:WheelEvent) => boolean} [h.wheel]  a plain vertical scroll; return true to take it from the page
  * @param {(e:PointerEvent) => void} [h.tap]
  * @param {(e:PointerEvent) => void} [h.doubleTap]
  * @param {(clientX:number, clientY:number) => void} [h.hover]
@@ -53,8 +55,10 @@ export function attachScopeGestures(el, h) {
     if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
       e.preventDefault();
       h.pan(e.deltaX * lineK);
+      return;
     }
-    // vertical scroll falls through to the page
+    if (h.wheel?.(e)) e.preventDefault();
+    // otherwise vertical scroll falls through to the page
   };
 
   const onGestureStart = (e) => { e.preventDefault(); safariScale = 1; };

@@ -45,6 +45,7 @@ export class Panadapter extends Component {
   setPassband(pb) { this.spectrum.setPassband(pb); this.waterfall.setPassband(pb); }
   setMarkers(m) { this.spectrum.setMarkers(m); this.waterfall.setMarkers(m); }
   setDragTune(mode) { this.spectrum.setDragTune(mode); this.waterfall.setDragTune(mode); }
+  setWheelTune(step) { this.spectrum.setWheelTune(step); this.waterfall.setWheelTune(step); }
   setChannels(plan) { this.spectrum.setChannels(plan); this.waterfall.setChannel(this.spectrum.channel); }
   selectChannel(hz, opts) { const ch = this.spectrum.selectChannel(hz, opts); this.waterfall.setChannel(ch); return ch; }
   setTransmitting(on) { this.spectrum.setTransmitting(on); this.waterfall.setTransmitting(on); }

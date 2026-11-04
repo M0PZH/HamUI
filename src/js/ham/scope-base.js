@@ -3,7 +3,7 @@
 // readout and theme-aware colors.
 import { Component, h } from '../core/dom.js';
 import { frameScheduler } from '../core/canvas.js';
-import { attachScopeGestures } from '../core/gestures.js';
+import { attachScopeGestures, wheelStepper } from '../core/gestures.js';
 import { onThemeChange, resolveColors } from '../core/theme.js';
 import { formatHz } from '../core/format.js';
 import { FrequencyView } from './view.js';
@@ -23,6 +23,8 @@ export const SCOPE_DEFAULTS = {
   dragTune: 'press',    // 'press': press anywhere tunes there and dragging keeps tuning; drag the
                         //   frequency axis to pan · 'passband': drag the passband to tune, elsewhere pans ·
                         //   'always': every drag moves the tune · false: drag pans, click tunes
+  wheelTune: false,     // vertical scroll tunes the dial: true (tuneStep per notch) or a step in Hz;
+                        //   false leaves it to the page. Shift scrolls pan, ctrl/⌘ zoom either way.
   readout: true,        // pointer frequency readout
   label: null,          // accessible name
 };
@@ -65,6 +67,7 @@ export class ScopeBase extends Component {
         zoom: (f, x) => this.view.zoomAt(f, this.clientXToHz(x)),
         pan: (dx) => this.view.pan((dx / this._cssWidth()) * this.view.span),
         tap: (e) => this._tap(e),
+        wheel: (e) => this._wheel(e),
         grab: (x, y) => this._grabTune(x, y),
         doubleTap: () => this.view.reset(),
         hover: (x, y) => this._hover(x, y),
@@ -139,16 +142,33 @@ export class ScopeBase extends Component {
 
   _tap(e) { this.tuneTo(this.clientXToHz(e.clientX)); }
 
+  /** Step per scroll notch for wheel-to-tune, or 0 when off. */
+  get wheelTuneStep() {
+    const w = this.options.wheelTune;
+    return w === true ? this.options.tuneStep || 1 : typeof w === 'number' && w > 0 ? w : 0;
+  }
+
+  setWheelTune(step) { this.options.wheelTune = step; }
+
+  _wheel(e) {
+    const step = this.wheelTuneStep;
+    if (!step || this.dial == null) return false;
+    const n = (this._wheelSteps ||= wheelStepper(40))(e);
+    // off the step grid, the first notch lands on the next grid point that way
+    const base = (n > 0 ? Math.floor : Math.ceil)(this.dial / step + (n > 0 ? 1e-9 : -1e-9)) * step;
+    if (n) this.tuneTo(base + n * step, { source: 'wheel', step });
+    return true;
+  }
+
   clientXToHz(clientX) {
     const r = this.el.getBoundingClientRect();
     return this.view.hzAt((clientX - r.left) / (r.width || 1));
   }
 
   /** Programmatic or gesture tune. Emits a cancelable ham:tune {hz, source}. */
-  tuneTo(hz, { source = 'click' } = {}) {
-    const step = this.options.tuneStep || 1;
+  tuneTo(hz, { source = 'click', step = this.options.tuneStep || 1 } = {}) {
     const rounded = Math.round(hz / step) * step;
-    if (source === 'drag' && rounded === this.dial) return;
+    if ((source === 'drag' || source === 'wheel') && rounded === this.dial) return;
     const ok = this.el.dispatchEvent(new CustomEvent('ham:tune', { detail: { hz: rounded, source }, bubbles: true, cancelable: true }));
     if (ok && this.options.autoDial) this.setDial(rounded);
   }

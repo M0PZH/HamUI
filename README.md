@@ -34,7 +34,7 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 
 | Name | `data-ham` | Notes |
 | --- | --- | --- |
-| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers, `dragTune`, `channels` (channel strip; `HamUI.bandplans.qo100Wideband`) |
+| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers, `dragTune`, `wheelTune`, `channels` (channel strip; `HamUI.bandplans.qo100Wideband`, `qo100Narrowband`) |
 | Waterfall | `waterfall` | `push(bins, range?)`, colormaps (`theme`, `viridis`, `inferno`, `plasma`, `turbo`, `gray`), `autoLevel()` |
 | Panadapter | `panadapter` | spectrum + waterfall sharing one `FrequencyView` |
 | Meter | `meter` | `type`: `s`, `power`, `swr`, `alc`, `custom` |
@@ -61,12 +61,14 @@ All events are bubbling `ham:*` CustomEvents: `ham:tune`, `ham:channel`, `ham:vi
 
 Channel plans are versioned: `HamUI.bandplans.qo100Wideband2021v3` is frozen and never changes (pin it when a layout must stay put);
 `HamUI.bandplans.qo100Wideband` always points to the newest version. Each plan has `meta` (version, date, source).
+`HamUI.bandplans.qo100Narrowband2020` (alias `qo100Narrowband`) is the AMSAT-DL narrowband plan of 2020-02-14, receive only;
+it has no version number, so the key is its year. `HamUI.regionAt(plan, hz)` returns the segment at a frequency.
 
 ### hamui/media
 
 A separate entry (`import { AudioStreamPlayer } from 'hamui/media'`, UMD global `HamUIMedia`) with no DOM components:
 `AudioStreamPlayer` plays streamed PCM through an AudioWorklet ring buffer whose PI-controlled resampler absorbs sender/sound-card
-clock drift, with a jitter-adaptive target; `SyncCore`, `AudioClock`, `ArrivalClock`, `JitterEstimator` and `VideoQueue` do A/V sync
+clock drift, with a jitter-adaptive target, and plays gaps in the stream time as silence; `SyncCore` (with optional timeline epochs), `AudioClock`, `ArrivalClock`, `JitterEstimator` and `VideoQueue` do A/V sync
 on an audio master clock; `PtsUnwrapper` and friends handle 90 kHz MPEG PTS. From the PlutoSAT station front end.
 
 `hamui/css` is the whole stylesheet; `hamui/css/core` leaves out the VideoPanel and DecodeList styles

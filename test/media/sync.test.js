@@ -104,6 +104,48 @@ test('held audio is bounded while no key frame comes', () => {
   assert.ok(s.held.length <= Math.ceil((0.5 * 90000) / AF) + 1);
 });
 
+test('epochs: same-epoch discontinuity resyncs video at a key frame, audio and the timeline carry on', () => {
+  const s = new SyncCore();
+  const VE = (pts, o = {}) => ({ ...V(pts, o), epoch: o.epoch ?? 7 });
+  const AE = (pts, o = {}) => ({ ...A(pts, o), epoch: o.epoch ?? 7 });
+  assert.equal(s.video(VE(0, { key: true })).timeline, true);
+  assert.equal(s.audio(AE(0), AF).action, 'decode');
+  // 3 s of video dropped: the next AU has the flag, same epoch, not a key frame
+  assert.equal(s.video(VE(3 * 90000, { disc: true })).action, 'drop');
+  assert.equal(s.video(VE(3 * 90000 + VF)).action, 'drop');
+  const k = s.video(VE(3 * 90000 + 2 * VF, { key: true }));
+  assert.equal(k.action, 'decode');
+  assert.equal(k.timeline, false);
+  assert.equal(k.resync, true);
+  // audio dropped too: a 2 s step with the flag is a gap, not a new timeline
+  const a = s.audio(AE(2 * 90000, { disc: true }), AF);
+  assert.equal(a.action, 'decode');
+  assert.equal(a.timeline, false);
+  assert.equal(s.stats.timelines, 1);
+  assert.equal(s.stats.jumps, 0);
+  assert.equal(s.stats.videoResyncs, 1);
+});
+
+test('epochs: a new epoch restarts both streams; late frames of the old one are dropped', () => {
+  const s = new SyncCore();
+  s.video({ ...V(0, { key: true }), epoch: 1 });
+  s.audio({ ...A(0), epoch: 1 }, AF);
+  // new epoch, PTS continuous and no flag: still a new timeline
+  assert.equal(s.audio({ ...A(AF), epoch: 2 }, AF).action, 'hold');
+  assert.equal(s.audio({ ...A(2 * AF), epoch: 1 }, AF).action, 'drop'); // stale
+  assert.equal(s.video({ ...V(VF), epoch: 2 }).action, 'drop');         // waits for a key frame
+  const k = s.video({ ...V(2 * VF, { key: true }), epoch: 2 });
+  assert.equal(k.timeline, true);
+  assert.equal(s.stats.timelines, 2);
+  assert.equal(s.stats.epochs, 1);
+  assert.equal(s.stats.stale, 1);
+  // without epochs the old rules apply: a flag restarts both
+  const t = new SyncCore();
+  t.video(V(0, { key: true }));
+  t.video(V(VF, { key: true, disc: true }));
+  assert.equal(t.stats.timelines, 2);
+});
+
 test('VideoQueue: newest due frame shown, older dropped, late by more than one interval dropped', () => {
   const q = new VideoQueue({ interval: 0.04 });
   for (let i = 0; i < 6; i++) q.push({ ticks: i * VF });

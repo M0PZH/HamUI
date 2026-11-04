@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseFt8 } from '../../src/js/ham/decodes.js';
-import { bandplans, normalizePlan, txFor } from '../../src/js/ham/channels.js';
+import { bandplans, normalizePlan, txFor, regionAt } from '../../src/js/ham/channels.js';
 
 test('parseFt8: CQ, directed, reports, acks', () => {
   assert.deepEqual(
@@ -31,4 +31,20 @@ test('bandplans: versioned plans are frozen, the alias is the latest', () => {
   const ch = p.all.find((c) => c.hz === 10494.75e6 && c.lane === 1);
   assert.equal(txFor(p, ch), 2405.25e6);
   assert.equal(txFor(p, p.fixed[0]), null);
+});
+
+test('bandplans: QO-100 narrowband', () => {
+  const nb = bandplans.qo100Narrowband2020;
+  assert.equal(bandplans.qo100Narrowband, nb);
+  assert.ok(Object.isFrozen(nb.regions[0].data));
+  const p = normalizePlan(nb);
+  assert.equal(p.select, 'rx');
+  assert.equal(p.all.length, 6);
+  // segments tile 10489.500 .. 10490.000 without gaps
+  for (let i = 1; i < nb.regions.length; i++) assert.equal(nb.regions[i].from, nb.regions[i - 1].to);
+  assert.equal(regionAt(nb, 10489.600e6).label, 'Digi 2.7 kHz');
+  assert.equal(regionAt(p, 10489.520e6).data.mode, 'cw');
+  assert.equal(regionAt(nb, 10490.5e6), null);
+  const emerg = p.fixed.find((c) => c.label === 'Emergency');
+  assert.equal(txFor(p, emerg), 2400.360e6);
 });

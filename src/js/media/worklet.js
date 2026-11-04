@@ -5,6 +5,7 @@
 //
 // Messages in:  {type:'pcm', planes: Float32Array[], ticks, rate, gen}
 //               {type:'flush', gen}   {type:'target', value}
+//               {type:'gaps', fill, maxGap}
 // Messages out: the ring report plus ctxTime (the AudioContext time the
 //               reported position refers to: the end of the rendered quantum)
 //               and gen, every 8 render quanta (~21 ms at 48 kHz).
@@ -20,7 +21,8 @@ class HamUIAudioStreamProcessor extends AudioWorkletProcessor {
   constructor(options) {
     super();
     const o = options.processorOptions || {};
-    this.ring = new ${R}({ inRate: o.inRate || sampleRate, outRate: sampleRate, target: o.target || 0.12 });
+    this.ring = new ${R}({ inRate: o.inRate || sampleRate, outRate: sampleRate, target: o.target || 0.12,
+      fillGaps: o.fillGaps !== false, maxGap: o.maxGap || 1 });
     this.gen = o.gen || 0;
     this.n = 0;
     this.port.onmessage = (e) => {
@@ -34,6 +36,9 @@ class HamUIAudioStreamProcessor extends AudioWorkletProcessor {
         this.ring.flush();
       } else if (m.type === 'target') {
         this.ring.setTarget(m.value);
+      } else if (m.type === 'gaps') {
+        this.ring.fillGaps = m.fill;
+        this.ring.maxGap = m.maxGap;
       }
     };
   }

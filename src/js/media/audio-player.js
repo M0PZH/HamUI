@@ -7,12 +7,14 @@
 //   button.onclick = () => audio.start();         // needs a click or tap
 //   ws.onmessage = (e) => audio.push(new Int16Array(e.data), { rate: 12000 });
 //   audio.volume = 0.7; audio.muted = false;
-//   audio.stats();    // {playing, fill, target, minTarget, jitter, ppm, underruns, drops}
+//   audio.stats();    // {playing, fill, target, minTarget, jitter, ppm, underruns, drops, gaps}
 //   audio.level();    // 0..1 (-60..0 dBFS), for a meter
 //
 // Stream time: pass `ticks` (90 kHz, unwrapped; e.g. MPEG PTS through
 // PtsUnwrapper) or `time` (seconds) per chunk for A/V sync and jitter
-// tracking; without either, chunks are taken as back to back.
+// tracking; without either, chunks are taken as back to back. Where the
+// stream time skips ahead (frames lost on the way) the gap is played as
+// silence, up to `maxGap`; a larger skip is a new timeline and plays on.
 import { PTS_HZ } from './pts.js';
 import { AudioClock, JitterEstimator, audioTarget } from './sync.js';
 import { loadWorklet, PROCESSOR_NAME } from './worklet.js';
@@ -24,13 +26,20 @@ export class AudioStreamPlayer extends EventTarget {
    * @param {object} [o]
    * @param {number} [o.target=0.12]    minimum buffer, seconds (0.04..1); jitter can raise it (to 1 s)
    * @param {boolean} [o.adaptive=true] raise the target to cover the measured arrival jitter
+   * @param {number} [o.startReserve=0.25] with adaptive, buffer at least this much (s) until
+   *   3 s of arrivals are known; 0 starts at `target` straight away
+   * @param {boolean} [o.fillGaps=true] play gaps in the stream time as silence
+   * @param {number} [o.maxGap=1]      s: the largest gap filled; larger skips play on
    * @param {number} [o.channels=2]     output channels (mono input is copied to both)
    * @param {AudioContext} [o.context]  use an existing context
    * @param {AudioNode} [o.destination] connect here instead of context.destination
    */
-  constructor({ target = 0.12, adaptive = true, channels = 2, context = null, destination = null } = {}) {
+  constructor({ target = 0.12, adaptive = true, startReserve = 0.25, fillGaps = true, maxGap = 1, channels = 2, context = null, destination = null } = {}) {
     super();
     this.minTarget = clampTarget(target);
+    this.startReserve = Math.max(0, Math.min(1, +startReserve || 0));
+    this.fillGaps = !!fillGaps;
+    this.maxGap = maxGap;
     this.effTarget = this.minTarget;
     this.adaptive = adaptive;
     this.channels = channels;
@@ -66,7 +75,7 @@ export class AudioStreamPlayer extends EventTarget {
       if (this.closed) return;
       this.node = new AudioWorkletNode(ctx, PROCESSOR_NAME, {
         numberOfInputs: 0, outputChannelCount: [this.channels],
-        processorOptions: { target: this.effTarget, gen: this.gen },
+        processorOptions: { target: this.effTarget, gen: this.gen, fillGaps: this.fillGaps, maxGap: this.maxGap },
       });
       this.gain = ctx.createGain();
       this.analyser = ctx.createAnalyser();
@@ -142,6 +151,13 @@ export class AudioStreamPlayer extends EventTarget {
     this.node?.port.postMessage({ type: 'flush', gen: this.gen });
   }
 
+  /** Play gaps in the stream time as silence (up to maxGap seconds), or join the chunks. */
+  setGapFill(on, maxGap = this.maxGap) {
+    this.fillGaps = !!on;
+    this.maxGap = maxGap;
+    this.node?.port.postMessage({ type: 'gaps', fill: this.fillGaps, maxGap });
+  }
+
   /** Minimum buffer in seconds (0.04..1). With adaptive: false it is the target. */
   setTarget(sec) { this.minTarget = clampTarget(sec); this._adaptTarget(true); }
 
@@ -151,7 +167,7 @@ export class AudioStreamPlayer extends EventTarget {
     this._adaptAt = t;
     const j = this.jitter, known = j.t.length > 1 ? j.t[j.t.length - 1] - j.t[0] : 0;
     // until a few seconds of arrivals are known, start with some reserve
-    const min = this.adaptive && known < 3 ? Math.max(this.minTarget, 0.25) : this.minTarget;
+    const min = this.adaptive && known < 3 ? Math.max(this.minTarget, this.startReserve) : this.minTarget;
     const eff = this.adaptive ? audioTarget(min, j.spread) : this.minTarget;
     if (force || Math.abs(eff - this.effTarget) > 0.015) {
       this.effTarget = eff;
@@ -191,6 +207,8 @@ export class AudioStreamPlayer extends EventTarget {
       underruns: r?.underruns ?? 0,
       drops: r?.drops ?? 0,
       droppedSeconds: r?.droppedSeconds ?? 0,
+      gaps: r?.gaps ?? 0,
+      gapSeconds: r?.gapSeconds ?? 0,
     };
   }
 

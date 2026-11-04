@@ -14,6 +14,8 @@
 // fill stays at `target`. A real underrun outputs silence and restarts at the
 // target fill; an overrun beyond `overrunFactor` x target (e.g. after a
 // network burst) drops the oldest audio to come back to the target at once.
+// A gap in the stream time between chunks (lost or dropped frames) is filled
+// with silence, up to `maxGap`, so the audio after it plays at its own time.
 
 export class FillController {
   /**
@@ -66,18 +68,25 @@ export class AudioRing {
    * @param {number} o.target   seconds (40..500 ms)
    * @param {number} o.overrunFactor  drop to target when the fill exceeds this x target
    * @param {number} o.maxSeconds     hard cap on buffered audio
+   * @param {boolean} o.fillGaps      insert silence where the stream time skips ahead
+   * @param {number} o.minGap         seconds: smaller gaps (timestamp rounding) are ignored
+   * @param {number} o.maxGap         seconds: larger skips are a new timeline, not a gap
    */
-  constructor({ inRate = 48000, outRate = 48000, target = 0.12, overrunFactor = 3, maxSeconds = 4, controller = {} } = {}) {
+  constructor({ inRate = 48000, outRate = 48000, target = 0.12, overrunFactor = 3, maxSeconds = 4, fillGaps = true, minGap = 0.002, maxGap = 1, controller = {} } = {}) {
     this.inRate = inRate;
     this.outRate = outRate;
     this.overrunFactor = overrunFactor;
     this.maxSeconds = maxSeconds;
+    this.fillGaps = fillGaps;
+    this.minGap = minGap;
+    this.maxGap = maxGap;
+    this._pushEnd = null;    // stream time (ticks) just after the last pushed chunk
     this.ctl = new FillController({ target, ...controller });
     this.chunks = [];        // {planes: Float32Array[], length, ticks}
     this.pos = 0;            // fractional read position in chunks[0]
     this.frames = 0;         // input frames buffered from chunks[0] start
     this.playing = false;    // false: prefilling (silence out)
-    this.stats = { underruns: 0, drops: 0, droppedSeconds: 0, played: 0 };
+    this.stats = { underruns: 0, drops: 0, droppedSeconds: 0, played: 0, gaps: 0, gapSeconds: 0 };
   }
 
   get target() { return this.ctl.target; }
@@ -107,6 +116,7 @@ export class AudioRing {
     this.frames = 0;
     this.playing = false;
     this._lastTicks = null;
+    this._pushEnd = null;
     this.ctl.reset(true);
   }
 
@@ -118,6 +128,21 @@ export class AudioRing {
   push(planes, ticks) {
     const length = planes[0]?.length ?? 0;
     if (!length) return;
+    if (this.fillGaps && ticks != null && this._pushEnd != null) {
+      const gap = (ticks - this._pushEnd) / 90000;
+      if (gap > this.minGap && gap <= this.maxGap) {
+        const n = Math.round(gap * this.inRate);
+        this.stats.gaps++;
+        this.stats.gapSeconds += n / this.inRate;
+        this._queue(planes.map(() => new Float32Array(n)), this._pushEnd);
+      }
+    }
+    this._pushEnd = ticks != null ? ticks + (length * 90000) / this.inRate : null;
+    this._queue(planes, ticks);
+  }
+
+  _queue(planes, ticks) {
+    const length = planes[0].length;
     this.chunks.push({ planes, length, ticks });
     this.frames += length;
     const max = this.maxSeconds * this.inRate;
@@ -205,6 +230,8 @@ export class AudioRing {
       underruns: this.stats.underruns,
       drops: this.stats.drops,
       droppedSeconds: this.stats.droppedSeconds,
+      gaps: this.stats.gaps,
+      gapSeconds: this.stats.gapSeconds,
     };
   }
 }

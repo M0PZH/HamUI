@@ -431,7 +431,7 @@ pan.setDragTune('passband');           // 'press' (default) | 'passband' | 'alwa
         </div>
         <pre><code>const spec = new HamUI.Spectrum('#spec', {
   startHz: 10490e6, spanHz: 10e6,
-  channels: HamUI.bandplans.qo100Wideband,     // or your own plan:
+  channels: HamUI.bandplans.qo100Wideband,     // or qo100Narrowband, or your own plan:
   // channels: {
   //   offsetHz: -8089.5e6,                    // TX = RX + offset, or txHz: (ch) =&gt; hz
   //   lanes: [{ label: '333 kS', sr: 333e3, from: 10492.75e6, to: 10499.25e6, step: 0.5e6 },
@@ -450,17 +450,22 @@ spec.setTransmitting(true);                     // the selected channel turns re
       <table class="ham-table doc-api"><tbody>
         <tr><td>lanes</td><td>[]</td><td>Rows of channels: <code>slots</code> (Hz or objects) or <code>from</code>/<code>to</code>/<code>step</code>, with <code>width</code> (default the step), <code>sr</code>, <code>label</code></td></tr>
         <tr><td>fixed</td><td>[]</td><td>Channels that span every row, e.g. a beacon; <code>rxOnly</code> draws them dashed and gives no TX frequency</td></tr>
-        <tr><td>regions</td><td>[]</td><td>Labelled bandplan segments under the rows</td></tr>
+        <tr><td>regions</td><td>[]</td><td>Labelled bandplan segments under the rows; <code>HamUI.regionAt(plan, hz)</code> finds one (with its <code>data</code>, e.g. a suggested mode)</td></tr>
         <tr><td>offsetHz / txHz</td><td>null</td><td>How the TX frequency follows from the channel</td></tr>
         <tr><td>select</td><td>'rx+tx'</td><td><code>'rx'</code> leaves <code>txHz</code> null</td></tr>
         <tr><td>occupancy / occupancyDb</td><td>'auto' / 3</td><td>Marks a channel occupied when its mean level is this far over the noise floor</td></tr>
         <tr><td>laneHeight</td><td>14 (18 on touch)</td><td>Row height in px. The spectrum grows by the strip's height, set in <code>--ham-channel-strip</code></td></tr>
       </tbody></table>
+      <p>Ready-made plans are versioned. A versioned key is frozen and never changes; pin it when a layout must stay put. The short key follows the newest version. Each plan has <code>meta</code> (name, version, date, source).</p>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>qo100Wideband2021v3</td><td>qo100Wideband</td><td>QO-100 wideband (DATV), AMSAT-DL / BATC plan V3: beacon plus 1 MS, 333 kS and 125 kS rows, with uplink frequencies</td></tr>
+        <tr><td>qo100Narrowband2020</td><td>qo100Narrowband</td><td>QO-100 narrowband, AMSAT-DL plan of 2020-02-14: segments as regions (<code>data.mode</code>: cw or usb), beacons, broadcast and emergency as fixed entries, receive only. The plan has no version number, so the key is its year</td></tr>
+      </tbody></table>
     </section>
 
     <section class="doc-section" id="gestures">
       <h2>Gestures</h2>
-      <p>Spectrum, Waterfall and Panadapter share one set of gestures (<code>HamUI.attachScopeGestures</code> is available for your own components). Vertical scrolling is never captured, so the page still scrolls.</p>
+      <p>Spectrum, Waterfall and Panadapter share one set of gestures (<code>HamUI.attachScopeGestures</code> is available for your own components). Vertical scrolling is not captured unless you turn on <code>wheelTune</code>, so the page still scrolls.</p>
       <div class="ham-table-wrap">
         <table class="ham-table">
           <thead><tr><th>Input</th><th>Gesture</th><th>Result</th></tr></thead>
@@ -474,6 +479,7 @@ spec.setTransmitting(true);                     // the selected channel turns re
             <tr><td>Touch</td><td>Two-finger pinch</td><td>Zoom + pan</td></tr>
             <tr><td>Keyboard</td><td>← → · + − · Home</td><td>Pan · zoom · reset</td></tr>
             <tr><td>Trackpad / wheel</td><td>Up · down over a knob or frequency digit</td><td>Increase · decrease, following the fingers. macOS natural scrolling is taken into account (Safari reports it; other browsers assume the macOS default). Override with <code>HamUI.setScrollDirection('natural' | 'traditional' | 'auto')</code>.</td></tr>
+            <tr><td colspan="3" class="ham-faint"><code>wheelTune: true</code> (one <code>tuneStep</code> per notch) or a step in Hz makes vertical scrolling over the scope tune the dial, like a VFO knob; it then no longer scrolls the page. Shift and Ctrl/⌘ still pan and zoom.</td></tr>
             <tr><td colspan="3" class="ham-faint">Other drag modes via <code>dragTune</code>: <code>'passband'</code> (drag the passband to tune, drag elsewhere to pan), <code>'always'</code> (every drag moves the tune), <code>false</code> (drag pans, click tunes).</td></tr>
           </tbody>
         </table>
@@ -663,22 +669,33 @@ HamUI.parseFt8('IZ1AAA M0PZH R-12');         // {to:'IZ1AAA', from:'M0PZH', repo
 
     <section class="doc-section" id="media">
       <h2>Streamed audio</h2>
-      <p><code>hamui/media</code> is a separate entry with no DOM components, so the UI bundle stays the same size. <code>AudioStreamPlayer</code> plays streamed PCM (DATV audio, SDR audio over a WebSocket) through an AudioWorklet ring buffer. A slow PI controller nudges the playback rate by at most 0.5&nbsp;% to absorb the clock difference between sender and sound card. It stays within ±20&nbsp;ms of the target at ±300&nbsp;ppm over an hour. The target rises when arrival jitter grows, an underrun restarts at the target, and a burst beyond 3× the target drops the oldest audio in one step. The A/V sync classes (<code>SyncCore</code>, <code>AudioClock</code>, <code>ArrivalClock</code>, <code>VideoQueue</code>) are pure logic, driven by unit tests in simulated time. From the PlutoSAT station front end.</p>
+      <p><code>hamui/media</code> is a separate entry with no DOM components, so the UI bundle stays the same size. <code>AudioStreamPlayer</code> plays streamed PCM (DATV audio, SDR audio over a WebSocket) through an AudioWorklet ring buffer. A slow PI controller nudges the playback rate by at most 0.5&nbsp;% to absorb the clock difference between sender and sound card. It stays within ±20&nbsp;ms of the target at ±300&nbsp;ppm over an hour. The target rises when arrival jitter grows, an underrun restarts at the target, and a burst beyond 3× the target drops the oldest audio in one step. Where the stream time skips ahead (frames lost on the way), the gap plays as silence, so the audio after it stays on time. The A/V sync classes (<code>SyncCore</code>, <code>AudioClock</code>, <code>ArrivalClock</code>, <code>VideoQueue</code>) are pure logic, driven by unit tests in simulated time. From the PlutoSAT station front end.</p>
       <pre><code>import { AudioStreamPlayer } from 'hamui/media';    // UMD: dist/hamui-media.umd.cjs, global HamUIMedia
 
-const audio = new AudioStreamPlayer({ target: 0.12 });  // minimum buffer, s (0.04..0.5)
+const audio = new AudioStreamPlayer({
+  target: 0.12,        // minimum buffer, s (0.04..1)
+  startReserve: 0.25,  // buffer at least this until 3 s of arrivals are known (0: start at target)
+  fillGaps: true, maxGap: 1,   // play gaps in ticks/time as silence, up to 1 s
+});
 button.onclick = () =&gt; audio.start();                  // browsers need a click or tap
 ws.onmessage = (e) =&gt; audio.push(new Int16Array(e.data), { rate: 12000 });   // or Float32 planes, + ticks/time
 // decoded or held audio: pass when it really arrived (performance.now() s), or arrival: false + noteArrival()
 audio.push(planes, { rate: 48000, ticks, arrival: packetArrivedAt });
 audio.noteArrival(ticks, performance.now() / 1000);
 audio.volume = 0.7;  audio.muted = false;
-audio.stats();      // {running, playing, fill, target, minTarget, jitter, ppm, underruns, drops}
+audio.stats();      // {running, playing, fill, target, minTarget, jitter, ppm, underruns, drops, gaps, gapSeconds}
 audio.level();      // 0..1 on a -60..0 dBFS scale, for a meter
 audio.position();   // stream position being heard, 90 kHz ticks: the master clock for video
 audio.flush();      // channel change: drop the buffer, prefill again
 audio.setTarget(0.4);                     // minimum buffer 0.04..1 s (the target itself with adaptive: false)
-analyserLevel(myAnalyserNode);            // the same meter scale for your own AnalyserNode</code></pre>
+analyserLevel(myAnalyserNode);            // the same meter scale for your own AnalyserNode
+
+// A/V sync with numbered timelines: put epoch on each frame
+const core = new SyncCore();
+const v = core.video({ pts, dts, key, discontinuity, epoch });
+// v.timeline: new timeline (new epoch, or a flag/jump without epochs): reset decoder, flush audio
+// v.resync:   data dropped, same epoch: reset the decoder at this key frame; audio carries on
+const a = core.audio({ pts, discontinuity, epoch }, durationTicks);</code></pre>
       <p>CSS: <code>hamui/css</code> has everything. <code>hamui/css/core</code> (<code>src/css/hamui-core.css</code>) leaves out the video panel and decode list; add <code>src/css/ham/video.css</code> or <code>src/css/ham/decodes.css</code> next to it as needed.</p>
     </section>
 
