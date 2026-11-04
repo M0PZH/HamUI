@@ -26,6 +26,7 @@ const DEFAULTS = {
   volume: 1,            // 0..1
   muted: false,
   stats: true,          // Stats toggle button
+  statsPosition: 'top-right', // 'top-right' | 'bottom-right' | 'top-left' | 'bottom-left'
   fullscreen: true,     // full screen button, double-click, F key
   width: 640,           // initial canvas backing size; the app resizes it to the video
   height: 360,
@@ -49,7 +50,7 @@ export class VideoPanel extends Component {
     this.titleSub = h('span');
     this.titleEl = h('div', { class: 'ham-video-title', hidden: true }, [this.titleMain, this.titleSub]);
     this.msgEl = h('div', { class: 'ham-video-msg', role: 'status', hidden: true });
-    this.statsEl = h('dl', { class: 'ham-video-stats', hidden: true });
+    this.statsEl = h('dl', { class: 'ham-video-stats', hidden: true, 'data-pos': o.statsPosition });
     this.soundEl = h('button', { type: 'button', class: 'ham-video-sound', hidden: true });
     this.soundEl.innerHTML = `${svg('muted')}<span>Turn sound on</span>`;
     this.stage = h('div', { class: 'ham-video-stage' }, [this.canvas, this.titleEl, this.msgEl, this.statsEl, this.soundEl]);
@@ -149,7 +150,26 @@ export class VideoPanel extends Component {
   }
 
   /** Show the "Turn sound on" chip (the browser is holding audio back until a click). */
-  setSoundBlocked(on) { this.soundEl.hidden = !on; }
+  setSoundBlocked(on) { this._blocked = !!on; this.soundEl.hidden = !on || this._noAudio; }
+
+  /**
+   * Whether the stream has audio this page can play. Unavailable disables
+   * mute and volume, empties the meter and hides the sound chip; `reason`
+   * becomes their tooltip (e.g. 'No audio in this stream').
+   */
+  setAudioAvailable(on, reason = '') {
+    this._noAudio = !on;
+    this.el.classList.toggle('is-no-audio', !on);
+    for (const c of [this.muteBtn, this.volEl]) {
+      if (!c) continue;
+      c.disabled = !on;
+      if (on) c.removeAttribute('title'); else if (reason) c.title = reason;
+    }
+    if (this.levelEl) this.levelEl.title = on ? '' : reason;
+    if (!on) { this.setLevel(0); this.soundEl.hidden = true; } else this.setSoundBlocked(this._blocked);
+  }
+
+  get audioAvailable() { return !this._noAudio; }
 
   /** Volume 0..1 (the level kept while muted). */
   get volume() { return this._volume; }
@@ -195,7 +215,7 @@ export class VideoPanel extends Component {
   /** Audio level meter, 0..1. */
   setLevel(v) {
     if (!this.levelBar) return;
-    const w = `${Math.round(Math.max(0, Math.min(1, this._muted ? 0 : v)) * 100)}%`;
+    const w = `${Math.round(Math.max(0, Math.min(1, this._muted || this._noAudio ? 0 : v)) * 100)}%`;
     if (this.levelBar.style.width !== w) this.levelBar.style.width = w;
   }
 
@@ -234,7 +254,7 @@ export class VideoPanel extends Component {
   _key(e) {
     if (e.altKey || e.ctrlKey || e.metaKey || e.target.closest('input, select, textarea')) return;
     const k = e.key.toLowerCase();
-    if (k === 'm' && this.options.audio) { this.setMuted(!this._muted, { user: true }); e.preventDefault(); }
+    if (k === 'm' && this.options.audio && !this._noAudio) { this.setMuted(!this._muted, { user: true }); e.preventDefault(); }
     else if (k === 'f' && this.fsBtn) { this.toggleFullscreen(); e.preventDefault(); }
   }
 

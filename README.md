@@ -69,6 +69,9 @@ A separate entry (`import { AudioStreamPlayer } from 'hamui/media'`, UMD global 
 clock drift, with a jitter-adaptive target; `SyncCore`, `AudioClock`, `ArrivalClock`, `JitterEstimator` and `VideoQueue` do A/V sync
 on an audio master clock; `PtsUnwrapper` and friends handle 90 kHz MPEG PTS. From the PlutoSAT station front end.
 
+`hamui/css` is the whole stylesheet; `hamui/css/core` leaves out the VideoPanel and DecodeList styles
+(`src/css/ham/video.css`, `src/css/ham/decodes.css`) so apps can add only what they use.
+
 `HamUI.SignalSimulator` produces plausible band activity (FT8, JS8, CW, carriers) and
 `HamUI.DvbS2Simulator` DVB-S2 symbols and lock sequences, for demos and tests.
 `HamUI.dvbs2` has the MODCOD table (EN 302 307 Es/N0 thresholds), constellation geometry, MER and bitrate helpers.

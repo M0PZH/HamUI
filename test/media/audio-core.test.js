@@ -120,3 +120,23 @@ test('controller output is limited to ±0.5 %', () => {
   for (let k = 0; k < 100000; k++) c.update(0, 0.01);
   assert.equal(c.adj, -0.005);
 });
+
+test('AudioStreamPlayer: arrival times feed the jitter estimate; targets up to 1 s', async () => {
+  globalThis.performance ??= { now: () => Date.now() };
+  const { AudioStreamPlayer } = await import('../../src/js/media/audio-player.js');
+  const a = new AudioStreamPlayer({ target: 0.12 });
+  const planes = () => [new Float32Array(960)];
+  // decoded in a burst, but it arrived smoothly: the real arrival keeps the jitter at 0
+  for (let i = 0; i < 50; i++) a.push(planes(), { rate: 48000, ticks: i * 1800, arrival: 100 + i * 0.02 });
+  assert.ok(a.jitter.spread < 1e-9, `spread ${a.jitter.spread}`);
+  // arrival: false leaves the estimate alone
+  const n = a.jitter.t.length;
+  a.push(planes(), { rate: 48000, ticks: 50 * 1800, arrival: false });
+  assert.equal(a.jitter.t.length, n);
+  a.noteArrival(51 * 1800, 100 + 51 * 0.02 + 0.3);
+  assert.ok(Math.abs(a.jitter.spread - 0.3) < 1e-6);
+  const fixed = new AudioStreamPlayer({ target: 0.8, adaptive: false });
+  assert.equal(fixed.minTarget, 0.8);
+  fixed.setTarget(2); assert.equal(fixed.minTarget, 1);
+  assert.equal(fixed.effTarget, 1);
+});

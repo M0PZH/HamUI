@@ -622,6 +622,7 @@ vp.setMessage('Waiting for a key frame', 'warn');   // '' | 'warn' | 'error'; nu
 vp.setStats([['Video', '312 kbit/s'], ['Frames dropped', 3, 'warn']]);
 vp.setLevel(audio.level());  vp.setTime(seconds);
 vp.setSoundBlocked(audio.blocked);
+vp.setAudioAvailable(false, 'No audio in this stream');   // disables mute and volume
 vp.on('unmute', () =&gt; audio.start());                 // the "Turn sound on" chip
 vp.on('volume', (e) =&gt; { audio.volume = e.detail.volume; audio.muted = e.detail.muted; });
 vp.addButton({ label: 'Record', side: 'right', onclick });</code></pre>
@@ -630,6 +631,7 @@ vp.addButton({ label: 'Record', side: 'right', onclick });</code></pre>
         <tr><td>aspect</td><td>'16 / 9'</td><td>Stage aspect ratio, or <code>'fill'</code> to fill a sized flex parent</td></tr>
         <tr><td>audio</td><td>true</td><td>Mute, volume and level meter. <code>ham:volume</code> {volume, muted, gain}</td></tr>
         <tr><td>stats / fullscreen</td><td>true / true</td><td>The Stats toggle (<code>ham:stats</code>) and full screen (<code>ham:fullscreen</code>)</td></tr>
+        <tr><td>statsPosition</td><td>'top-right'</td><td>Where the stats overlay sits: <code>'top-right'</code> | <code>'bottom-right'</code> | <code>'top-left'</code> | <code>'bottom-left'</code></td></tr>
         <tr><td>volume / muted</td><td>1 / false</td><td>Initial values; <code>setVolume()</code>, <code>setMuted()</code></td></tr>
       </tbody></table>
     </section>
@@ -667,11 +669,17 @@ HamUI.parseFt8('IZ1AAA M0PZH R-12');         // {to:'IZ1AAA', from:'M0PZH', repo
 const audio = new AudioStreamPlayer({ target: 0.12 });  // minimum buffer, s (0.04..0.5)
 button.onclick = () =&gt; audio.start();                  // browsers need a click or tap
 ws.onmessage = (e) =&gt; audio.push(new Int16Array(e.data), { rate: 12000 });   // or Float32 planes, + ticks/time
+// decoded or held audio: pass when it really arrived (performance.now() s), or arrival: false + noteArrival()
+audio.push(planes, { rate: 48000, ticks, arrival: packetArrivedAt });
+audio.noteArrival(ticks, performance.now() / 1000);
 audio.volume = 0.7;  audio.muted = false;
 audio.stats();      // {running, playing, fill, target, minTarget, jitter, ppm, underruns, drops}
 audio.level();      // 0..1 on a -60..0 dBFS scale, for a meter
 audio.position();   // stream position being heard, 90 kHz ticks: the master clock for video
-audio.flush();      // channel change: drop the buffer, prefill again</code></pre>
+audio.flush();      // channel change: drop the buffer, prefill again
+audio.setTarget(0.4);                     // minimum buffer 0.04..1 s (the target itself with adaptive: false)
+analyserLevel(myAnalyserNode);            // the same meter scale for your own AnalyserNode</code></pre>
+      <p>CSS: <code>hamui/css</code> has everything. <code>hamui/css/core</code> (<code>src/css/hamui-core.css</code>) leaves out the video panel and decode list; add <code>src/css/ham/video.css</code> or <code>src/css/ham/decodes.css</code> next to it as needed.</p>
     </section>
 
     <section class="doc-section" id="api">

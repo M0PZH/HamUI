@@ -21,6 +21,7 @@
       "require": "./dist/hamui-media.umd.cjs"
     },
     "./css": "./dist/hamui.css",
+    "./css/core": "./src/css/hamui-core.css",
     "./src/*": "./src/*"
   },
   "sideEffects": [

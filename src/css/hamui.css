@@ -1,4 +1,4 @@
-/* HamUI — full stylesheet */
+/* HamUI — full stylesheet (hamui-core.css + ham/video.css + ham/decodes.css). */
 @import "./tokens.css";
 @import "./base.css";
 @import "./layout.css";
@@ -20,7 +20,8 @@
 @import "./ham/scope.css";
 @import "./ham/knob.css";
 @import "./ham/datv.css";
-@import "./ham/media.css";
+@import "./ham/video.css";
+@import "./ham/decodes.css";
 
 /* utilities last so they win over component defaults */
 @import "./utilities.css";

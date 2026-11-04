@@ -22,7 +22,7 @@ const nowS = () => performance.now() / 1000;
 export class AudioStreamPlayer extends EventTarget {
   /**
    * @param {object} [o]
-   * @param {number} [o.target=0.12]    minimum buffer, seconds (0.04..0.5); jitter can raise it
+   * @param {number} [o.target=0.12]    minimum buffer, seconds (0.04..1); jitter can raise it (to 1 s)
    * @param {boolean} [o.adaptive=true] raise the target to cover the measured arrival jitter
    * @param {number} [o.channels=2]     output channels (mono input is copied to both)
    * @param {AudioContext} [o.context]  use an existing context
@@ -108,18 +108,28 @@ export class AudioStreamPlayer extends EventTarget {
    * @param {number} [o.channels=1]  channels interleaved in a single buffer
    * @param {number} [o.ticks]       stream time of the first sample, 90 kHz ticks
    * @param {number} [o.time]        ... or in seconds
+   * @param {number|false} [o.arrival]  when this audio arrived from the network, performance.now() seconds
+   *   (default: now). Pass the real arrival when the audio was decoded or held first, or false to leave
+   *   the jitter estimate alone (feed it with noteArrival() instead).
    */
-  push(data, { rate = 48000, channels = 1, ticks, time } = {}) {
+  push(data, { rate = 48000, channels = 1, ticks, time, arrival } = {}) {
     const planes = toPlanes(data, channels);
     const frames = planes[0]?.length || 0;
     if (!frames) return;
     const t = ticks ?? (time != null ? time * PTS_HZ : this._streamTicks ?? 0);
     this._streamTicks = t + (frames / rate) * PTS_HZ;
-    const arrival = nowS();
-    this.jitter.add(t / PTS_HZ - arrival, arrival); // stream time minus arrival: its spread is the jitter
-    if (this.adaptive) this._adaptTarget();
+    if (arrival !== false) this.noteArrival(t, arrival ?? nowS());
     if (!this.node) return;
     this.node.port.postMessage({ type: 'pcm', planes, ticks: t, rate, gen: this.gen }, planes.map((p) => p.buffer).filter(uniqueBuffers()));
+  }
+
+  /**
+   * Record that stream time `ticks` (90 kHz) arrived at `atSec` (performance.now() seconds).
+   * The spread of stream time minus arrival over the last 10 s is the jitter the target covers.
+   */
+  noteArrival(ticks, atSec = nowS()) {
+    this.jitter.add(ticks / PTS_HZ - atSec, atSec);
+    if (this.adaptive) this._adaptTarget();
   }
 
   /** Drop everything buffered (a channel change, a new stream); the next audio prefills again. */
@@ -132,7 +142,7 @@ export class AudioStreamPlayer extends EventTarget {
     this.node?.port.postMessage({ type: 'flush', gen: this.gen });
   }
 
-  /** Minimum buffer in seconds (0.04..0.5). */
+  /** Minimum buffer in seconds (0.04..1). With adaptive: false it is the target. */
   setTarget(sec) { this.minTarget = clampTarget(sec); this._adaptTarget(true); }
 
   _adaptTarget(force = false) {
@@ -163,14 +173,9 @@ export class AudioStreamPlayer extends EventTarget {
 
   /** Signal level for a meter: peak of the last ~20 ms on a -60..0 dBFS scale, as 0..1. */
   level() {
-    const a = this.analyser;
-    if (!a) return 0;
-    if (!this._levelBuf || this._levelBuf.length !== a.fftSize) this._levelBuf = new Float32Array(a.fftSize);
-    a.getFloatTimeDomainData(this._levelBuf);
-    let peak = 0;
-    for (const v of this._levelBuf) { const x = Math.abs(v); if (x > peak) peak = x; }
-    if (peak <= 0) return 0;
-    return Math.max(0, Math.min(1, 1 + (20 * Math.log10(peak)) / 60));
+    if (!this.analyser) return 0;
+    if (!this._levelBuf || this._levelBuf.length !== this.analyser.fftSize) this._levelBuf = new Float32Array(this.analyser.fftSize);
+    return analyserLevel(this.analyser, this._levelBuf);
   }
 
   stats() {
@@ -202,7 +207,17 @@ export class AudioStreamPlayer extends EventTarget {
   }
 }
 
-function clampTarget(s) { return Math.max(0.04, Math.min(0.5, +s || 0.12)); }
+function clampTarget(s) { return Math.max(0.04, Math.min(1, +s || 0.12)); }
+
+/** Peak of an AnalyserNode's current window on a -60..0 dBFS scale, as 0..1 (for a meter). */
+export function analyserLevel(analyser, buf) {
+  if (!analyser) return 0;
+  const b = buf && buf.length === analyser.fftSize ? buf : new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(b);
+  let peak = 0;
+  for (const v of b) { const x = Math.abs(v); if (x > peak) peak = x; }
+  return peak > 0 ? Math.max(0, Math.min(1, 1 + (20 * Math.log10(peak)) / 60)) : 0;
+}
 
 function uniqueBuffers() { const seen = new Set(); return (b) => (seen.has(b) ? false : (seen.add(b), true)); }
 
