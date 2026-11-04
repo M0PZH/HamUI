@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseFt8 } from '../../src/js/ham/decodes.js';
+import { parseFt8, formatDt, revealScroll } from '../../src/js/ham/decodes.js';
 import { bandplans, normalizePlan, txFor, regionAt } from '../../src/js/ham/channels.js';
 
 test('parseFt8: CQ, directed, reports, acks', () => {
@@ -19,6 +19,30 @@ test('parseFt8: CQ, directed, reports, acks', () => {
   assert.equal(parseFt8('M0PZH/P DL0ABC JO62').to, 'M0PZH/P');
   assert.equal(parseFt8('<PJ4/K1ABC> M0PZH IO91').to, '<PJ4/K1ABC>');
   assert.equal(parseFt8('TNX 73 GL').free, true);
+});
+
+test('formatDt: one decimal, no negative zero, empty for missing values', () => {
+  assert.equal(formatDt(0.2), '0.2');
+  assert.equal(formatDt(-0.04), '0.0');
+  assert.equal(formatDt(-0), '0.0');
+  assert.equal(formatDt(-0.26), '-0.3');
+  assert.equal(formatDt(1.25), '1.3');
+  assert.equal(formatDt('0.7'), '0.7');
+  assert.equal(formatDt(null), '');
+  assert.equal(formatDt(undefined), '');
+  assert.equal(formatDt(''), '');
+  assert.equal(formatDt('x'), '');
+});
+
+test('revealScroll: brings a row under the sticky header or to the bottom, else leaves it', () => {
+  // view 100 px, header 20 px, scrolled to 200: rows 220..300 are visible
+  assert.equal(revealScroll(200, 100, 240, 20, 20), 200);
+  assert.equal(revealScroll(200, 100, 210, 20, 20), 190);   // under the header
+  assert.equal(revealScroll(200, 100, 50, 20, 20), 30);     // above
+  assert.equal(revealScroll(200, 100, 290, 20, 20), 210);   // cut at the bottom
+  assert.equal(revealScroll(200, 100, 600, 20, 20), 520);   // below
+  assert.equal(revealScroll(0, 100, 10, 20, 20), 0);        // never above the top
+  assert.equal(revealScroll(0, 50, 100, 80, 20), 80);       // taller than the view: its top
 });
 
 test('bandplans: versioned plans are frozen, the alias is the latest', () => {

@@ -146,9 +146,12 @@ export class Waterfall extends ScopeBase {
     }
     this._overlayOnly = false;
 
+    // lines and passbands only over the rows that have data (newest on top);
+    // the marker labels stay at the top
     const s = this.overlay;
     s.ctx.clearRect(0, 0, s.width, s.height);
-    this.drawOverlay(s.ctx, s.width, s.height, s.dpr, { passbandAlpha: this.options.passbandAlpha });
+    const h = this.count >= rows ? s.height : Math.round((s.height * this.count) / rows);
+    this.drawOverlay(s.ctx, s.width, h, s.dpr, { passbandAlpha: this.options.passbandAlpha });
   }
 
   destroy() {

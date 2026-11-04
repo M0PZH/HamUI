@@ -49,6 +49,23 @@ export function parseFt8(message) {
   return r;
 }
 
+/** DT column text: one decimal, never "-0.0"; '' for a missing value. */
+export function formatDt(dt) {
+  const v = dt == null || dt === '' ? NaN : Number(dt);
+  return Number.isFinite(v) ? (Math.round(v * 10) / 10 || 0).toFixed(1) : '';
+}
+
+/**
+ * scrollTop that brings a row (top, height; content px) fully into a
+ * scroller of height viewH whose top `head` px are covered by a sticky
+ * header; unchanged when the row is already visible.
+ */
+export function revealScroll(scrollTop, viewH, top, height, head = 0) {
+  if (top - head < scrollTop) return Math.max(0, top - head);
+  if (top + height > scrollTop + viewH) return Math.max(0, Math.min(top - head, top + height - viewH));
+  return scrollTop;
+}
+
 const DEFAULTS = {
   mode: 'FT8',          // 'FT8' | 'FT4': sets the cycle length
   title: null,          // header title (default: the mode)
@@ -164,8 +181,7 @@ export class DecodeList extends Component {
     for (const tr of this.tbody.querySelectorAll('tr.is-selected')) tr.classList.remove('is-selected');
     if (d) {
       const tr = this.tbody.querySelector(`tr[data-i="${d._i}"]`);
-      tr?.classList.add('is-selected');
-      tr?.scrollIntoView({ block: 'nearest' });
+      if (tr) { tr.classList.add('is-selected'); this._reveal(tr); }
     }
     if (!silent && d) this.emit('select', this._public(d));
   }
@@ -239,7 +255,7 @@ export class DecodeList extends Component {
     this.tbody.append(h('tr', { class: cls, 'data-i': d._i }, [
       h('td', { text: d.time || '' }),
       h('td', { class: !d.tx && d.snr != null && d.snr < -18 ? 'is-weak' : null, text: snr }),
-      h('td', { class: 'ham-decodes-dt', text: d.dt == null || d.tx ? '' : Number(d.dt).toFixed(1) }),
+      h('td', { class: 'ham-decodes-dt', text: d.tx ? '' : formatDt(d.dt) }),
       h('td', { text: d.freq ?? '' }),
       h('td', { class: 'ham-decodes-msg' }, this._msgNodes(d)),
       h('td', { class: 'ham-decodes-info', text: d.info || '' }),
@@ -263,6 +279,14 @@ export class DecodeList extends Component {
     const o = this.options.info;
     const show = o === 'auto' ? this.decodes.some((d) => d.info) : !!o;
     this.el.classList.toggle('has-info', show);
+  }
+
+  // scrolls only the list body: scrollIntoView() would scroll the page too
+  _reveal(tr) {
+    const b = this.body, br = b.getBoundingClientRect(), r = tr.getBoundingClientRect();
+    const top = r.top - br.top - b.clientTop + b.scrollTop;
+    const y = revealScroll(b.scrollTop, b.clientHeight, top, r.height, this.table.tHead?.offsetHeight || 0);
+    if (y !== b.scrollTop) b.scrollTop = y;
   }
 
   _atEnd() { const b = this.body; return b.scrollTop + b.clientHeight >= b.scrollHeight - 4; }

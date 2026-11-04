@@ -255,7 +255,7 @@ export class ScopeBase extends Component {
   /** x (backing px) of a frequency. */
   xOf(hz, W) { return this.view.frac(hz) * W; }
 
-  /** Passband, dial, markers and hover line. */
+  /** Passband, dial, markers and hover line; marker labels on top of all lines. */
   drawOverlay(ctx, W, H, dpr, { passbandAlpha = 1 } = {}) {
     const c = this.colors;
     if (this.dial != null && this.passband) {
@@ -293,6 +293,7 @@ export class ScopeBase extends Component {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       ctx.setLineDash([]);
     }
+    if (this.drawsLabels && this.markers.length) this._drawMarkerLabels(ctx, W, dpr);
   }
 
   /** A marker's frequency span [lo, hi] (Hz), or null for a bare line. */
@@ -343,7 +344,6 @@ export class ScopeBase extends Component {
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
     }
-    if (this.drawsLabels) this._drawMarkerLabels(ctx, W, dpr);
   }
 
   _drawMarkerLabels(ctx, W, dpr) {
