@@ -12,7 +12,7 @@ const DEFAULTS = {
   peakDecay: 0.15,     // dB per update
   fill: true,
   grid: true,
-  dbStep: 10,
+  dbStep: 10,          // dB between grid lines; doubled while lines would be closer than 16 px
   axis: true,          // frequency labels along the bottom
   dbLabels: true,
 };
@@ -81,6 +81,10 @@ export class Spectrum extends ScopeBase {
     const axisH = o.axis ? Math.round(22 * dpr) : 0;
     const H = Htot - axisH;
     const toY = (db) => (1 - (db - o.minDb) / (o.maxDb - o.minDb)) * H;
+    // widen the dB step until lines are at least ~16 px apart (short spectra)
+    let dbStep = o.dbStep;
+    const pxPerDb = H / dpr / (o.maxDb - o.minDb || 1);
+    while (dbStep * pxPerDb < 16 && dbStep < 1000) dbStep *= 2;
 
     ctx.fillStyle = c.inset;
     ctx.fillRect(0, 0, W, Htot);
@@ -91,7 +95,7 @@ export class Spectrum extends ScopeBase {
       ctx.strokeStyle = c.grid;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      for (let db = Math.ceil(o.minDb / o.dbStep) * o.dbStep; db <= o.maxDb; db += o.dbStep) {
+      for (let db = Math.ceil(o.minDb / dbStep) * dbStep; db <= o.maxDb; db += dbStep) {
         const y = Math.round(toY(db)) + 0.5;
         ctx.moveTo(0, y); ctx.lineTo(W, y);
       }
@@ -145,7 +149,7 @@ export class Spectrum extends ScopeBase {
       ctx.fillStyle = c['fg-faint'];
       ctx.textBaseline = 'bottom';
       ctx.textAlign = 'left';
-      for (let db = Math.ceil(o.minDb / o.dbStep) * o.dbStep; db <= o.maxDb; db += o.dbStep) {
+      for (let db = Math.ceil(o.minDb / dbStep) * dbStep; db <= o.maxDb; db += dbStep) {
         const y = toY(db);
         if (y < 12 * dpr) continue;
         ctx.fillText(String(db), 6 * dpr, y - 2 * dpr);
