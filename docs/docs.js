@@ -1,6 +1,7 @@
 // Docs page wiring. Examples are plain HTML; their source is shown under
 // each preview, captured before HamUI.init() changes the DOM.
 import HamUI from '../src/js/index.js';
+import { AudioStreamPlayer } from '../src/js/media/index.js';
 
 function dedent(s) {
   const lines = s.replace(/^\n+|\s+$/g, '').split('\n');
@@ -153,3 +154,91 @@ setInterval(() => {
   wf.push(f, range);
   pan.push(f, range);
 }, 50);
+
+/* video panel: a moving test card, sound from a quiet test tone through AudioStreamPlayer */
+{
+  const vp = new HamUI.VideoPanel('#docVideo', { label: 'Example video', volume: 0.4 });
+  vp.setTitle('N0CALL', 'H.265 · 1280×720 · 25 fps');
+  const audio = new AudioStreamPlayer({ target: 0.12 });
+  audio.volume = vp.volume; audio.muted = vp.muted;
+  vp.setSoundBlocked(true);
+  const startSound = () => audio.start().then(() => vp.setSoundBlocked(audio.blocked)).catch((e) => vp.setMessage(e.message, 'error'));
+  vp.on('unmute', startSound);
+  vp.on('volume', (e) => { audio.volume = e.detail.volume; audio.muted = e.detail.muted; if (!e.detail.muted && audio.blocked) startSound(); });
+  // the tone: 12 kHz PCM in 20 ms chunks, as a WebSocket stream would deliver it
+  let ph = 0;
+  setInterval(() => {
+    const n = 240, buf = new Int16Array(n);
+    for (let i = 0; i < n; i++) {
+      const env = 0.5 + 0.5 * Math.sin(ph / 9000);
+      buf[i] = 1800 * env * (Math.sin(ph * 2 * Math.PI * 440 / 12000) + 0.5 * Math.sin(ph * 2 * Math.PI * 660 / 12000));
+      ph++;
+    }
+    if (audio.running) audio.push(buf, { rate: 12000 });
+  }, 20);
+  const cv = vp.canvas, ctx = cv.getContext('2d');
+  cv.width = 640; cv.height = 360;
+  const bars = ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'];
+  const t0 = performance.now();
+  const draw = (now) => {
+    const W = cv.width, H = cv.height, t = (now - t0) / 1000;
+    const g = ctx.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#1d3a52'); g.addColorStop(1, '#0d1a26');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const bw = (W * 0.6) / bars.length, bx = W * 0.2, by = H * 0.24, bh = H * 0.36;
+    bars.forEach((c, i) => { ctx.fillStyle = c; ctx.fillRect(bx + i * bw, by, bw + 1, bh); });
+    for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgb(${i * 50},${i * 50},${i * 50})`; ctx.fillRect(bx + i * W * 0.1, by + bh, W * 0.1, H * 0.08); }
+    ctx.fillStyle = '#fff'; ctx.font = '600 24px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('N0CALL  ·  IO91', W / 2, by + bh + H * 0.2);
+    ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillRect((Math.sin(t * 1.3) * 0.5 + 0.5) * W - 2, H * 0.86, 4, H * 0.06);
+    vp.setLevel(audio.level());
+    vp.setTime(t);
+    requestAnimationFrame(draw);
+  };
+  requestAnimationFrame(draw);
+  setInterval(() => {
+    const st = audio.stats();
+    const ms = (v) => (v == null ? null : `${Math.round(v * 1000)} ms`);
+    vp.setStats([
+      ['Video', '312 kbit/s'],
+      ['Audio', st.running ? '12 kHz PCM' : 'off'],
+      ['Audio buffer', ms(st.fill)],
+      ['Target', ms(st.target)],
+      ['Jitter', ms(st.jitter)],
+      ['Clock drift', st.ppm == null ? null : `${st.ppm >= 0 ? '+' : ''}${st.ppm.toFixed(0)} ppm`],
+      ['Underruns', st.underruns, st.underruns ? 'warn' : ''],
+    ]);
+  }, 500);
+}
+
+/* decode list: a simulated FT8 band */
+{
+  const dl = HamUI.getInstance('#docDecodes');
+  const calls = ['EA4ZZZ IN80', 'DL0ABC JO62', 'F5AAA JN18', 'JA1ABC PM95', 'IZ1AAA JN45', 'SP9XYZ KN09', 'OK1RR JN79', 'K1ABC FN42', 'OH2XX KP20', 'G0XYZ IO91'];
+  const info = { EA4ZZZ: 'Spain', DL0ABC: 'Germany', F5AAA: 'France', JA1ABC: 'Japan', IZ1AAA: 'Italy', SP9XYZ: 'Poland', OK1RR: 'Czechia', K1ABC: 'USA', OH2XX: 'Finland', G0XYZ: 'England' };
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const msg = () => {
+    const [c, grid] = pick(calls).split(' ');
+    const r = Math.random();
+    if (r < 0.3) return { message: `CQ ${Math.random() < 0.2 ? 'DX ' : ''}${c} ${grid}`, call: c };
+    if (r < 0.42) return { message: `M0PZH ${c} ${Math.random() < 0.5 ? grid : `R-${10 + Math.floor(Math.random() * 9)}`}`, call: c };
+    const [o] = pick(calls).split(' ');
+    return { message: `${o} ${c} ${pick([grid, '-11', 'R-07', 'RR73', '73'])}`, call: c };
+  };
+  const cycle = (when) => {
+    const t = new Date(Math.floor(when / 15000) * 15000);
+    const odd = Math.floor(when / 15000) % 2 === 1;
+    if (odd && Math.random() < 0.5) return [{ time: t, tx: true, freq: 1500, message: 'CQ M0PZH IO91' }];
+    return Array.from({ length: 3 + Math.floor(Math.random() * 5) }, () => {
+      const m = msg();
+      return { time: t, snr: Math.round(-24 + Math.random() * 30), dt: Math.round((Math.random() - 0.3) * 10) / 10, freq: 200 + Math.round(Math.random() * 2600), message: m.message, info: info[m.call] };
+    }).sort((a, b) => a.freq - b.freq);
+  };
+  const now = Date.now();
+  for (let k = 8; k > 0; k--) dl.push(cycle(now - k * 15000));
+  setInterval(() => dl.push(cycle(Date.now() - 1000)), 15000);
+  dl.on('select', (e) => {
+    const d = e.detail;
+    log('#docDecodesLog', `ham:select → ${d.message} · from ${d.from ?? '—'}${d.grid ? ` · ${d.grid}` : ''}${d.report != null ? ` · ${d.report} dB` : ''} · ${d.freq} Hz`);
+  });
+}

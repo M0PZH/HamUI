@@ -7,6 +7,7 @@
 //     lanes: [{ label: '333 kS', sr: 333e3, width: 0.5e6, from, to, step } | { slots: [hz | {hz, ...}] }],
 //     fixed: [{ hz, width, label, sr, rxOnly }],
 //     regions: [{ from, to, label }],
+//     meta: { name, version, date, source },  // optional, informational
 //     select: 'rx+tx' | 'rx',         // whether a click hands out a TX frequency
 //     occupancy: 'auto' | false | (ch) => boolean,
 //     occupancyDb: 3,                 // 'auto': mean level this far above the noise floor
@@ -73,23 +74,38 @@ export function txFor(plan, ch) {
 
 const MHz = 1e6;
 
+const deepFreeze = (o) => { Object.values(o).forEach((v) => v && typeof v === 'object' && deepFreeze(v)); return Object.freeze(o); };
+
 /**
- * Ready-made plans. Simplified from the BATC wideband spectrum monitor;
- * check the current bandplan before transmitting.
+ * Ready-made plans. Versioned keys are frozen and never change, so pin one
+ * (e.g. qo100Wideband2021v3) when your layout must stay put. The unversioned
+ * alias (qo100Wideband) follows the newest version. `meta` names the source.
+ * The channel rows are a simplified operating aid; check the published
+ * bandplan before transmitting.
  */
-export const bandplans = {
-  qo100Wideband: {
-    offsetHz: -8089.5 * MHz,
-    fixed: [{ hz: 10491.5 * MHz, width: 1.8 * MHz, sr: 1.5e6, label: 'Beacon', rxOnly: true }],
-    lanes: [
-      { label: '1 MS', sr: 1e6, width: 1.5 * MHz, from: 10493.25 * MHz, to: 10496.25 * MHz, step: 1.5 * MHz },
-      { label: '333 kS', sr: 333e3, from: 10492.75 * MHz, to: 10499.25 * MHz, step: 0.5 * MHz },
-      { label: '125 kS', sr: 125e3, from: 10492.75 * MHz, to: 10499.25 * MHz, step: 0.25 * MHz },
-    ],
-    regions: [
-      { from: 10490.5 * MHz, to: 10492.5 * MHz, label: 'Beacon' },
-      { from: 10492.5 * MHz, to: 10497.0 * MHz, label: 'Wide & narrow' },
-      { from: 10497.0 * MHz, to: 10499.5 * MHz, label: 'Narrow' },
-    ],
+const qo100Wideband2021v3 = deepFreeze({
+  meta: {
+    name: 'QO-100 wideband transponder',
+    version: '3',
+    date: '2021-02-28',
+    source: 'AMSAT-DL / BATC WB bandplan V3 (https://wiki.batc.org.uk/QO-100_WB_Bandplan)',
+    note: 'Channel rows simplified from the BATC wideband spectrum monitor',
   },
-};
+  offsetHz: -8089.5 * MHz,
+  fixed: [{ hz: 10491.5 * MHz, width: 1.8 * MHz, sr: 1.5e6, label: 'Beacon', rxOnly: true }],
+  lanes: [
+    { label: '1 MS', sr: 1e6, width: 1.5 * MHz, from: 10493.25 * MHz, to: 10496.25 * MHz, step: 1.5 * MHz },
+    { label: '333 kS', sr: 333e3, from: 10492.75 * MHz, to: 10499.25 * MHz, step: 0.5 * MHz },
+    { label: '125 kS', sr: 125e3, from: 10492.75 * MHz, to: 10499.25 * MHz, step: 0.25 * MHz },
+  ],
+  regions: [
+    { from: 10490.5 * MHz, to: 10492.5 * MHz, label: 'Beacon' },
+    { from: 10492.5 * MHz, to: 10497.0 * MHz, label: 'Wide & narrow' },
+    { from: 10497.0 * MHz, to: 10499.5 * MHz, label: 'Narrow' },
+  ],
+});
+
+export const bandplans = Object.freeze({
+  qo100Wideband2021v3,
+  qo100Wideband: qo100Wideband2021v3, // latest
+});

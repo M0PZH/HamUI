@@ -54,6 +54,9 @@
     <a href="#selectors">Band &amp; mode</a>
     <a href="#station">Station status</a>
     <a href="#datv">DVB-S2 / DATV</a>
+    <a href="#video">Video panel</a>
+    <a href="#decodes">Decode list</a>
+    <a href="#media">Streamed audio</a>
     <span class="ham-label">Reference</span>
     <a href="#api">JS API</a>
   </nav>
@@ -603,6 +606,72 @@ HamUI.dvbs2.bitrate(333000, 'QPSK 2/3');      // ≈ 441 000 bit/s</code></pre>
         <tr><td>HamUI.dvbs2</td><td></td><td>MODCODS, getModcod, margin, bitrate, constellationPoints, measureMer</td></tr>
         <tr><td>DvbS2Simulator</td><td>next()</td><td>Simulated symbols and lock sequence for demos: modcod, merDb, fadeDb, stage()</td></tr>
       </tbody></table>
+    </section>
+
+    <section class="doc-section" id="video">
+      <h2>Video panel</h2>
+      <p>A canvas for decoded video, with a title, a centred message, a stats overlay and a control bar underneath, so the controls never cover the picture. It never decodes: draw into <code>vp.canvas</code> with WebCodecs, WebGL or anything else. Muting puts the volume slider at 0 and remembers the level. When the browser holds sound back until a click, <code>setSoundBlocked(true)</code> shows a "Turn sound on" chip. Keys: <kbd>M</kbd> mute, <kbd>F</kbd> full screen; double-click the picture for full screen. The example plays a quiet test tone through <code>AudioStreamPlayer</code>.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div id="docVideo" style="max-width: 640px"></div>
+        </div>
+        <pre><code>const vp = new HamUI.VideoPanel('#video', { label: 'DATV video' });   // aspect: '16 / 9' | 'fill'
+decoder.attach(vp.canvas);
+vp.setTitle('N0CALL', 'H.265 · 1280×720 · 25 fps');
+vp.setMessage('Waiting for a key frame', 'warn');   // '' | 'warn' | 'error'; null hides it
+vp.setStats([['Video', '312 kbit/s'], ['Frames dropped', 3, 'warn']]);
+vp.setLevel(audio.level());  vp.setTime(seconds);
+vp.setSoundBlocked(audio.blocked);
+vp.on('unmute', () =&gt; audio.start());                 // the "Turn sound on" chip
+vp.on('volume', (e) =&gt; { audio.volume = e.detail.volume; audio.muted = e.detail.muted; });
+vp.addButton({ label: 'Record', side: 'right', onclick });</code></pre>
+      </div>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>aspect</td><td>'16 / 9'</td><td>Stage aspect ratio, or <code>'fill'</code> to fill a sized flex parent</td></tr>
+        <tr><td>audio</td><td>true</td><td>Mute, volume and level meter. <code>ham:volume</code> {volume, muted, gain}</td></tr>
+        <tr><td>stats / fullscreen</td><td>true / true</td><td>The Stats toggle (<code>ham:stats</code>) and full screen (<code>ham:fullscreen</code>)</td></tr>
+        <tr><td>volume / muted</td><td>1 / false</td><td>Initial values; <code>setVolume()</code>, <code>setMuted()</code></td></tr>
+      </tbody></table>
+    </section>
+
+    <section class="doc-section" id="decodes">
+      <h2>Decode list</h2>
+      <p>An FT8/FT4 receive log. Rows are grouped by cycle. CQ calls show in the accent colour, messages to <code>myCall</code> get an amber row, and your own transmissions are red. The bar under the header shows the position in the cycle, and turns red during your TX cycles (<code>txPeriod</code>). The list follows the newest decodes until you scroll up, then offers an "N new ↓" button. Click a row, or use <kbd>↑</kbd> <kbd>↓</kbd>, to emit <code>ham:select</code> with the parsed message.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div id="docDecodes" data-ham="decodes" data-my-call="M0PZH" data-subtitle="14.074 MHz" data-tx-period="odd" style="--ham-decodes-height: 260px"></div>
+        </div>
+        <pre><code>const dl = new HamUI.DecodeList('#decodes', { mode: 'FT8', myCall: 'M0PZH', subtitle: '14.074 MHz' });
+dl.push([{ time: '210430', snr: -12, dt: 0.2, freq: 1234, message: 'CQ DX IZ1AAA JN45', info: 'Italy' }]);
+dl.push({ time: new Date(), tx: true, freq: 1500, message: 'IZ1AAA M0PZH IO91' });
+dl.on('select', (e) =&gt; reply(e.detail));   // {time, snr, dt, freq, message, call, to, from, grid, report, cq, toMe, ...}
+dl.setFilter('me');                          // 'all' | 'cq' | 'me'
+HamUI.parseFt8('IZ1AAA M0PZH R-12');         // {to:'IZ1AAA', from:'M0PZH', report:-12, roger:true, ...}</code></pre>
+      </div>
+      <div class="doc-log" id="docDecodesLog"></div>
+      <table class="ham-table doc-api"><tbody>
+        <tr><td>mode</td><td>'FT8'</td><td><code>'FT8'</code> (15 s) or <code>'FT4'</code> (7.5 s); <code>setMode()</code></td></tr>
+        <tr><td>myCall</td><td>''</td><td>Highlights messages to this call (portable suffixes ignored)</td></tr>
+        <tr><td>cycle / txPeriod</td><td>'auto' / null</td><td>Cycle bar from the clock (or <code>setCycle(frac, {tx})</code>); <code>'even'</code> | <code>'odd'</code> marks your TX cycles</td></tr>
+        <tr><td>max</td><td>500</td><td>Rows kept</td></tr>
+        <tr><td>info</td><td>'auto'</td><td>The Info column for app data (country, distance); shown when any decode has <code>info</code></td></tr>
+        <tr><td>--ham-decodes-height</td><td>320px</td><td>Height of the scrolling list (or let a flex parent size it)</td></tr>
+      </tbody></table>
+    </section>
+
+    <section class="doc-section" id="media">
+      <h2>Streamed audio</h2>
+      <p><code>hamui/media</code> is a separate entry with no DOM components, so the UI bundle stays the same size. <code>AudioStreamPlayer</code> plays streamed PCM (DATV audio, SDR audio over a WebSocket) through an AudioWorklet ring buffer. A slow PI controller nudges the playback rate by at most 0.5&nbsp;% to absorb the clock difference between sender and sound card. It stays within ±20&nbsp;ms of the target at ±300&nbsp;ppm over an hour. The target rises when arrival jitter grows, an underrun restarts at the target, and a burst beyond 3× the target drops the oldest audio in one step. The A/V sync classes (<code>SyncCore</code>, <code>AudioClock</code>, <code>ArrivalClock</code>, <code>VideoQueue</code>) are pure logic, driven by unit tests in simulated time. From the PlutoSAT station front end.</p>
+      <pre><code>import { AudioStreamPlayer } from 'hamui/media';    // UMD: dist/hamui-media.umd.cjs, global HamUIMedia
+
+const audio = new AudioStreamPlayer({ target: 0.12 });  // minimum buffer, s (0.04..0.5)
+button.onclick = () =&gt; audio.start();                  // browsers need a click or tap
+ws.onmessage = (e) =&gt; audio.push(new Int16Array(e.data), { rate: 12000 });   // or Float32 planes, + ticks/time
+audio.volume = 0.7;  audio.muted = false;
+audio.stats();      // {running, playing, fill, target, minTarget, jitter, ppm, underruns, drops}
+audio.level();      // 0..1 on a -60..0 dBFS scale, for a meter
+audio.position();   // stream position being heard, 90 kHz ticks: the master clock for video
+audio.flush();      // channel change: drop the buffer, prefill again</code></pre>
     </section>
 
     <section class="doc-section" id="api">

@@ -47,6 +47,8 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 | MerMeter | `mer-meter` | MER against the MODCOD's Es/N0 threshold, with decoding margin |
 | LockStatus | `lock-status` | demodulator lock steps (Search → Header → Demod → FEC → TS) |
 | TrendChart | `trend` | rolling history of a reading with threshold lines |
+| VideoPanel | `video` | canvas for decoded video: title, message and stats overlays, mute/volume/level, full screen |
+| DecodeList | `decodes` | FT8/FT4 receive log: cycles, CQ / to-me / TX highlighting, filters, `HamUI.parseFt8()` |
 | Tabs, Modal, toast() | `tabs`, `modal` | general UI |
 
 `HamUI.haptics` gives haptic feedback at detents (frequency steps, knob steps, segment changes, PTT). The default backend is
@@ -55,7 +57,17 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 Knobs and frequency digits follow the fingers on a trackpad (push up to increase), correcting for macOS natural scrolling;
 `HamUI.setScrollDirection('natural' | 'traditional')` overrides the detection.
 
-All events are bubbling `ham:*` CustomEvents: `ham:tune`, `ham:channel`, `ham:viewchange`, `ham:hover`, `ham:change`, `ham:ptt`, `ham:themechange`.
+All events are bubbling `ham:*` CustomEvents: `ham:tune`, `ham:channel`, `ham:viewchange`, `ham:hover`, `ham:change`, `ham:ptt`, `ham:select`, `ham:volume`, `ham:themechange`.
+
+Channel plans are versioned: `HamUI.bandplans.qo100Wideband2021v3` is frozen and never changes (pin it when a layout must stay put);
+`HamUI.bandplans.qo100Wideband` always points to the newest version. Each plan has `meta` (version, date, source).
+
+### hamui/media
+
+A separate entry (`import { AudioStreamPlayer } from 'hamui/media'`, UMD global `HamUIMedia`) with no DOM components:
+`AudioStreamPlayer` plays streamed PCM through an AudioWorklet ring buffer whose PI-controlled resampler absorbs sender/sound-card
+clock drift, with a jitter-adaptive target; `SyncCore`, `AudioClock`, `ArrivalClock`, `JitterEstimator` and `VideoQueue` do A/V sync
+on an audio master clock; `PtsUnwrapper` and friends handle 90 kHz MPEG PTS. From the PlutoSAT station front end.
 
 `HamUI.SignalSimulator` produces plausible band activity (FT8, JS8, CW, carriers) and
 `HamUI.DvbS2Simulator` DVB-S2 symbols and lock sequences, for demos and tests.
@@ -72,7 +84,8 @@ playground (`playground.html`) where you can edit HTML/JS against HamUI and shar
 ```sh
 npm install
 npm run dev     # docs at /, full radio demo at /demo/radio.html
-npm run build   # dist/hamui.css, dist/hamui.js (ESM), dist/hamui.umd.cjs
+npm run build   # dist/hamui.css, dist/hamui.js (ESM), dist/hamui.umd.cjs, dist/hamui-media.*
+npm test        # unit tests (node --test)
 npm run build:site  # static docs site in site-dist/
 ```
 

@@ -16,6 +16,10 @@
       "import": "./dist/hamui.js",
       "require": "./dist/hamui.umd.cjs"
     },
+    "./media": {
+      "import": "./dist/hamui-media.js",
+      "require": "./dist/hamui-media.umd.cjs"
+    },
     "./css": "./dist/hamui.css",
     "./src/*": "./src/*"
   },
@@ -25,9 +29,10 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --mode media",
     "preview": "vite preview",
-    "build:site": "vite build --mode site"
+    "build:site": "vite build --mode site",
+    "test": "node --test \"test/**/*.test.js\""
   },
   "devDependencies": {
     "vite": "^6.3.5"

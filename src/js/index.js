@@ -10,6 +10,8 @@ import { Spectrum } from './ham/spectrum.js';
 import { Waterfall } from './ham/waterfall.js';
 import { Panadapter } from './ham/panadapter.js';
 import { bandplans, formatSymbolRate } from './ham/channels.js';
+import { VideoPanel } from './ham/video.js';
+import { DecodeList, parseFt8 } from './ham/decodes.js';
 import { Meter, meterPresets } from './ham/meter.js';
 import { FrequencyDisplay } from './ham/frequency.js';
 import { Knob } from './ham/knob.js';
@@ -33,6 +35,8 @@ import { haptics } from './core/haptics.js';
 /** data-ham="<name>" -> component class */
 export const registry = {
   spectrum: Spectrum,
+  video: VideoPanel,
+  decodes: DecodeList,
   waterfall: Waterfall,
   panadapter: Panadapter,
   meter: Meter,
@@ -98,7 +102,7 @@ export {
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
   SignalSimulator, colormaps, format, attachScopeGestures, haptics, setScrollDirection,
   Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
-  bandplans, formatSymbolRate,
+  bandplans, formatSymbolRate, VideoPanel, DecodeList, parseFt8,
 };
 
 const HamUI = {
@@ -112,7 +116,7 @@ const HamUI = {
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
   SignalSimulator, colormaps, format, attachScopeGestures, haptics, setScrollDirection,
   Constellation, TrendChart, LockStatus, MerMeter, DvbS2Simulator, dvbs2,
-  bandplans, formatSymbolRate,
+  bandplans, formatSymbolRate, VideoPanel, DecodeList, parseFt8,
 };
 
 export default HamUI;
