@@ -361,6 +361,11 @@ const spec = HamUI.getInstance('#spec');
 spec.setDial(14074000);
 spec.setPassband(HamUI.passbandFor('USB', 2900));    // [100, 3000]
 spec.setMarkers([{ hz: 14078000, color: 'warn', dashed: true, label: 'JS8' }]);
+// other receivers on a shared SDR: passband relative to each marker's own dial
+spec.setMarkers([
+  { hz: 14074000, passband: [300, 2700], label: 'You · USB', own: true },  // accent, like the dial
+  { hz: 14075200, passband: [300, 2700], label: 'G4ABC · USB', dim: true }, // greyed out
+]);
 spec.on('tune', e =&gt; rig.setFrequency(e.detail.hz));
 setInterval(() =&gt; spec.update(getFftFrame()), 50);</code></pre>
       </div>
@@ -373,6 +378,7 @@ setInterval(() =&gt; spec.update(getFftFrame()), 50);</code></pre>
         <tr><td>tuneStep</td><td>10</td><td>Click-to-tune rounding in Hz</td></tr>
         <tr><td>minSpan</td><td>100</td><td>Span at maximum zoom in Hz</td></tr>
         <tr><td>view</td><td>null</td><td>A shared <code>FrequencyView</code> for linked zooming</td></tr>
+        <tr><td>markers</td><td>[]</td><td><code>{hz, label, passband: [lo, hi] | width, own, dim, color, dashed}</code>. The passband is shaded on the spectrum and edged on the waterfall. Labels show on both (<code>markerLabels: false</code> turns them off on a waterfall) and stack in up to three rows; any more are counted as "+n"</td></tr>
       </tbody></table>
     </section>
 
@@ -455,6 +461,7 @@ spec.setTransmitting(true);                     // the selected channel turns re
         <tr><td>select</td><td>'rx+tx'</td><td><code>'rx'</code> leaves <code>txHz</code> null</td></tr>
         <tr><td>occupancy / occupancyDb</td><td>'auto' / 3</td><td>Marks a channel occupied when its mean level is this far over the noise floor</td></tr>
         <tr><td>laneHeight</td><td>14 (18 on touch)</td><td>Row height in px. The spectrum grows by the strip's height, set in <code>--ham-channel-strip</code></td></tr>
+        <tr><td>fixedMinPx / fixedStyle</td><td>8 / 'box'</td><td>Fixed channels too narrow for the span (a 5 kHz beacon on a 500 kHz view) draw at least this wide with the label beside them, or as a pin (<code>'pin'</code>). The click target is at least 12 px (20 px on touch)</td></tr>
       </tbody></table>
       <p>Ready-made plans are versioned. A versioned key is frozen and never changes; pin it when a layout must stay put. The short key follows the newest version. Each plan has <code>meta</code> (name, version, date, source).</p>
       <table class="ham-table doc-api"><tbody>
@@ -513,7 +520,7 @@ HamUI.haptics.use();             // back to navigator.vibrate
 
     <section class="doc-section" id="knob">
       <h2>Knob</h2>
-      <p>Drag up and down, scroll, or use the arrow keys. Double-click returns to the default value.</p>
+      <p>Drag up and down, scroll, or use the arrow keys. Double-click returns to the default value. <code>endless: true</code> makes a VFO-style knob with no ends: the ring stays still, the pointer moves one detent per step, and every step emits <code>ham:change</code> with <code>{delta, steps, value}</code>. While you turn it, it shows how many steps this turn has made, then it goes back to showing the step size.</p>
       <div class="doc-example">
         <div class="doc-preview">
           <div class="ham-cluster" style="--ham-gap: 20px" id="docKnobs">
@@ -522,6 +529,7 @@ HamUI.haptics.use();             // back to navigator.vibrate
             <div data-ham="knob" data-label="SQL" data-value="0"></div>
             <div data-ham="knob" data-label="PWR" data-min="5" data-max="100" data-value="50" data-unit="W"></div>
             <div data-ham="knob" data-label="NR" data-min="0" data-max="15" data-value="6" data-size="sm"></div>
+            <div data-ham="knob" data-label="Tune" data-endless="true" data-step="10" data-unit="Hz"></div>
           </div>
           <div class="doc-log" id="docKnobLog"></div>
         </div>

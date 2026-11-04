@@ -34,12 +34,12 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 
 | Name | `data-ham` | Notes |
 | --- | --- | --- |
-| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers, `dragTune`, `wheelTune`, `channels` (channel strip; `HamUI.bandplans.qo100Wideband`, `qo100Narrowband`) |
+| Spectrum | `spectrum` | `update(bins, range?)`, averaging, peak hold, dial, passband, markers (`passband`, `own`, `dim`; stacked labels), `dragTune`, `wheelTune`, `channels` (channel strip; `HamUI.bandplans.qo100Wideband`, `qo100Narrowband`) |
 | Waterfall | `waterfall` | `push(bins, range?)`, colormaps (`theme`, `viridis`, `inferno`, `plasma`, `turbo`, `gray`), `autoLevel()` |
 | Panadapter | `panadapter` | spectrum + waterfall sharing one `FrequencyView` |
 | Meter | `meter` | `type`: `s`, `power`, `swr`, `alc`, `custom` |
 | FrequencyDisplay | `frequency` | per-digit wheel/drag/keyboard tuning |
-| Knob | `knob` | drag, wheel, arrow keys |
+| Knob | `knob` | drag, wheel, arrow keys; `endless: true` for relative VFO tuning (`ham:change` {delta, steps, value}) |
 | BandSelector / ModeSelector | `band-selector` / `mode-selector` | built on `Segmented` |
 | Segmented | `segmented` | one-of-few control |
 | Clock, TxIndicator, Ptt | `clock`, `trx`, `ptt` | station status |

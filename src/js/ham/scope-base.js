@@ -16,7 +16,7 @@ export const SCOPE_DEFAULTS = {
   minSpan: 100,         // deepest zoom (Hz)
   dial: null,           // dial frequency (Hz)
   passband: null,       // [lo, hi] relative to dial (Hz)
-  markers: [],          // [{hz, color, dashed, label, width}]
+  markers: [],          // [{hz, passband: [lo, hi] (relative to hz) | width, label, own, dim, color, dashed}]
   interactive: true,
   tuneStep: 10,         // click-to-tune rounding (Hz)
   autoDial: true,       // move the dial on tune (cancel the ham:tune event to prevent)
@@ -29,7 +29,7 @@ export const SCOPE_DEFAULTS = {
   label: null,          // accessible name
 };
 
-const COLOR_TOKENS = ['inset', 'surface', 'grid', 'trace', 'trace-fill', 'peak', 'passband', 'dial', 'fg', 'fg-muted', 'fg-faint',
+const COLOR_TOKENS = ['inset', 'surface', 'surface-2', 'accent-fg', 'grid', 'trace', 'trace-fill', 'peak', 'passband', 'dial', 'fg', 'fg-muted', 'fg-faint',
   'accent', 'accent-line', 'tx', 'rx', 'warn', 'border', 'border-strong', 'channel', 'channel-busy'];
 
 export class ScopeBase extends Component {
@@ -276,25 +276,7 @@ export class ScopeBase extends Component {
       }
       ctx.stroke();
     }
-    for (const m of this.markers) {
-      const col = c[m.color] || m.color || c.warn;
-      if (m.width) {
-        const x0 = this.xOf(m.hz - m.width / 2, W), x1 = this.xOf(m.hz + m.width / 2, W);
-        ctx.globalAlpha = 0.14; ctx.fillStyle = col; ctx.fillRect(x0, 0, x1 - x0, H); ctx.globalAlpha = 1;
-      }
-      const x = Math.round(this.xOf(m.hz, W)) + 0.5;
-      ctx.strokeStyle = col;
-      ctx.lineWidth = dpr;
-      ctx.setLineDash(m.dashed ? [4 * dpr, 4 * dpr] : []);
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-      ctx.setLineDash([]);
-      if (m.label && this.drawsLabels) {
-        ctx.fillStyle = col;
-        ctx.font = `${10 * dpr}px ${this.font}`;
-        ctx.textBaseline = 'top';
-        ctx.fillText(m.label, x + 4 * dpr, 4 * dpr);
-      }
-    }
+    this._drawMarkers(ctx, W, H, dpr);
     if (this.dial != null) {
       const x = Math.round(this.xOf(this.dial, W)) + 0.5;
       ctx.strokeStyle = c.dial;
@@ -310,6 +292,96 @@ export class ScopeBase extends Component {
       ctx.lineWidth = dpr;
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
       ctx.setLineDash([]);
+    }
+  }
+
+  /** A marker's frequency span [lo, hi] (Hz), or null for a bare line. */
+  static markerSpan(m) {
+    if (m.passband) return [m.hz + Math.min(m.passband[0], m.passband[1]), m.hz + Math.max(m.passband[0], m.passband[1])];
+    if (m.width) return [m.hz - m.width / 2, m.hz + m.width / 2];
+    return null;
+  }
+
+  /**
+   * Markers: other receivers, spots, memories. `own` draws in the accent
+   * (like the dial), `dim` greys it out (other users); a passband is shaded
+   * on the spectrum and edged on the waterfall. Labels stack in up to three
+   * rows so coinciding markers stay readable; the rest is counted as "+n".
+   */
+  _drawMarkers(ctx, W, H, dpr) {
+    const c = this.colors, ms = this.markers;
+    if (!ms.length) return;
+    const fills = this.markerFill !== 'edges';
+    for (const m of ms) {
+      const col = m.own ? c.accent : m.dim ? c['fg-muted'] : c[m.color] || m.color || c.warn;
+      const span = ScopeBase.markerSpan(m);
+      if (span) {
+        const x0 = this.xOf(span[0], W), x1 = this.xOf(span[1], W);
+        if (x1 >= 0 && x0 <= W) {
+          if (fills || !(m.passband || m.own || m.dim)) {
+            ctx.globalAlpha = m.own ? 1 : m.dim ? 0.08 : 0.14;
+            ctx.fillStyle = m.own ? c.passband : col;
+            ctx.fillRect(x0, 0, Math.max(1, x1 - x0), H);
+          } else {
+            ctx.globalAlpha = m.own ? 1 : 0.55;
+            ctx.strokeStyle = m.own ? c['accent-line'] : col;
+            ctx.lineWidth = dpr;
+            ctx.setLineDash(m.own ? [] : [3 * dpr, 3 * dpr]);
+            ctx.beginPath();
+            for (const e of [x0, x1]) { const x = Math.round(e) + 0.5; ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+            ctx.stroke();
+          }
+          ctx.globalAlpha = 1;
+        }
+      }
+      const x = Math.round(this.xOf(m.hz, W)) + 0.5;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = dpr;
+      ctx.globalAlpha = m.dim ? 0.7 : 1;
+      ctx.setLineDash(m.dashed || m.dim ? [4 * dpr, 3 * dpr] : []);
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+    if (this.drawsLabels) this._drawMarkerLabels(ctx, W, dpr);
+  }
+
+  _drawMarkerLabels(ctx, W, dpr) {
+    const c = this.colors, ROWS = 3, rh = 17 * dpr, pad = 5 * dpr, gap = 3 * dpr, top = 4 * dpr;
+    ctx.font = `500 ${10.5 * dpr}px ${this.font}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    const rows = Array.from({ length: ROWS }, () => []);
+    let hidden = 0;
+    // own first, then by frequency: the own label always gets the top row
+    const list = this.markers.filter((m) => m.label).sort((a, b) => (!!b.own - !!a.own) || a.hz - b.hz);
+    for (const m of list) {
+      const xm = this.xOf(m.hz, W);
+      if (xm < 0 || xm > W) continue;
+      const w = ctx.measureText(m.label).width + 2 * pad;
+      let x0 = Math.round(xm) + 3 * dpr;
+      if (x0 + w > W - 2 * dpr) x0 = Math.round(xm) - 3 * dpr - w;
+      const row = rows.findIndex((r) => r.every((b) => x0 + w + gap < b.x0 || x0 > b.x0 + b.w + gap));
+      if (row < 0) { hidden++; continue; }
+      rows[row].push({ x0, w });
+      const y = top + row * rh, hh = rh - 3 * dpr;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x0 + 0.5, y + 0.5, w, hh, 3 * dpr); else ctx.rect(x0 + 0.5, y + 0.5, w, hh);
+      if (m.own) {
+        ctx.fillStyle = c.accent; ctx.fill();
+        ctx.fillStyle = c['accent-fg'];
+      } else {
+        const col = m.dim ? c['fg-muted'] : c[m.color] || m.color || c.warn;
+        ctx.globalAlpha = 0.86; ctx.fillStyle = c.inset; ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = m.dim ? c['border-strong'] : col; ctx.lineWidth = dpr; ctx.stroke();
+        ctx.fillStyle = col;
+      }
+      ctx.fillText(m.label, x0 + pad + 0.5, y + hh / 2 + dpr);
+    }
+    if (hidden) {
+      const t = `+${hidden}`;
+      ctx.fillStyle = c['fg-faint'];
+      ctx.fillText(t, W - ctx.measureText(t).width - 6 * dpr, top + ROWS * rh + 4 * dpr);
     }
   }
 

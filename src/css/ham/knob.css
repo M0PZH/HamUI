@@ -18,3 +18,5 @@
 /* PTT: momentary transmit button */
 .ham-ptt { min-width: 96px; font-family: var(--ham-font-mono); letter-spacing: 0.08em; }
 .ham-ptt[aria-pressed="true"] { background: var(--ham-tx); border-color: var(--ham-tx); color: #fff; filter: none; }
+.ham-knob-endless > svg { cursor: ns-resize; }
+.ham-knob-value.is-delta { color: var(--ham-accent); }

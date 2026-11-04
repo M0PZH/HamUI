@@ -10,12 +10,14 @@ const DEFAULTS = {
   colormap: 'theme',   // 'theme' | 'viridis' | 'inferno' | 'plasma' | 'turbo' | 'gray' | [colors]
   maxWidth: 2048,      // cap on image columns
   passbandAlpha: 0.6,
+  markerLabels: true,  // draw marker labels at the top (the spectrum draws its own)
 };
 
 export class Waterfall extends ScopeBase {
   constructor(el, options = {}) {
     super(el, options, DEFAULTS, 'ham-waterfall');
-    this.drawsLabels = false;
+    this.drawsLabels = this.options.markerLabels !== false;
+    this.markerFill = 'edges'; // passbands of own/dim markers as edge lines, not a wash over the picture
     this.outlineChannel = true; // the selected channel's edges
     this.n = 0;
     this.hist = null;

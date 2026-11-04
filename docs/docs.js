@@ -44,7 +44,7 @@ fd.on('change', (e) => log('#docFreqLog', `ham:change → ${e.detail.hz} Hz (${e
 
 /* knobs */
 document.querySelectorAll('#docKnobs [data-ham="knob"]').forEach((k) =>
-  HamUI.getInstance(k).on('change', (e) => log('#docKnobLog', `${k.dataset.label} = ${e.detail.value}`)));
+  HamUI.getInstance(k).on('change', (e) => log('#docKnobLog', e.detail.delta != null ? `${k.dataset.label} ${e.detail.delta > 0 ? '+' : ''}${e.detail.delta} Hz` : `${k.dataset.label} = ${e.detail.value}`)));
 
 /* selectors */
 HamUI.getInstance('#docBand').on('change', (e) => log('#docBandLog', `${e.detail.value} · ${(e.detail.band.dial / 1e6).toFixed(3)} MHz`));

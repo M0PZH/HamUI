@@ -12,6 +12,8 @@
 //     occupancy: 'auto' | false | (ch) => boolean,
 //     occupancyDb: 3,                 // 'auto': mean level this far above the noise floor
 //     laneHeight: null,               // px; 14, or 18 on touch screens
+//     fixedMinPx: 8,                  // narrow fixed channels draw at least this wide
+//     fixedStyle: 'box' | 'pin',      // 'pin': a diamond on a stem at the centre
 //   }
 
 /** "333 kS", "1.5 MS" from symbols per second. */
@@ -62,6 +64,8 @@ export function normalizePlan(p) {
     occupancy: p.occupancy ?? 'auto',
     occupancyDb: p.occupancyDb ?? 3,
     laneHeight: p.laneHeight ?? null,
+    fixedMinPx: p.fixedMinPx ?? 8,
+    fixedStyle: p.fixedStyle === 'pin' ? 'pin' : 'box',
   };
 }
 

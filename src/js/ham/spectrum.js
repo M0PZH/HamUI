@@ -102,7 +102,14 @@ export class Spectrum extends ScopeBase {
     const y = clientY - r.top - this._stripTop(r.height) - 4;
     if (y < 0 || y >= g.lanesH) return null;
     const hz = this.clientXToHz(clientX);
-    for (const f of p.fixed) if (Math.abs(hz - f.hz) <= f.width / 2) return f;
+    // fixed channels: at least a 12 px target (20 px on touch), nearest centre wins
+    const hzPx = this.view.span / (r.width || 1), half = (coarse() ? 10 : 6) * hzPx;
+    let fx = null, fd = Infinity;
+    for (const f of p.fixed) {
+      const d = Math.abs(hz - f.hz);
+      if (d <= Math.max(f.width / 2, half) && d < fd) { fd = d; fx = f; }
+    }
+    if (fx) return fx;
     const lane = p.lanes[Math.floor(y / g.laneH)];
     if (!lane) return null;
     const slop = ((coarse() ? 12 : 3) * this.view.span) / (r.width || 1);
@@ -449,31 +456,64 @@ export class Spectrum extends ScopeBase {
       }
     });
 
-    // fixed channels span every lane
-    ctx.font = `500 ${11 * dpr}px ${this.fontUi}`;
-    ctx.textAlign = 'center';
+    // fixed channels span every lane; narrow ones (a beacon on a wide span)
+    // keep a minimum width, or draw as a pin, with the label beside them
     ctx.textBaseline = 'middle';
-    for (const ch of p.fixed) {
-      const x0 = this.xOf(ch.hz - ch.width / 2, W) + 2 * dpr, x1 = this.xOf(ch.hz + ch.width / 2, W) - 2 * dpr;
-      if (x1 < 0 || x0 > W) continue;
-      const yy = y0 + 2 * dpr, hh = g.lanesH * dpr - 4 * dpr;
-      const isSel = ch === sel;
+    const fixed = p.fixed.slice().sort((a, b) => a.hz - b.hz);
+    const yy = y0 + 2 * dpr, hh = g.lanesH * dpr - 4 * dpr, minW = p.fixedMinPx * dpr;
+    let labelEnd = -Infinity;
+    fixed.forEach((ch, i) => {
+      const cx = this.xOf(ch.hz, W);
+      let x0 = this.xOf(ch.hz - ch.width / 2, W) + 2 * dpr, x1 = this.xOf(ch.hz + ch.width / 2, W) - 2 * dpr;
+      const narrow = x1 - x0 < minW * 2.5;
+      if (x1 - x0 < minW) { x0 = cx - minW / 2; x1 = cx + minW / 2; }
+      if (x1 < 0 || x0 > W) return;
+      const isSel = ch === sel, isHov = ch === hov;
+      const stroke = isSel ? selColor : isHov ? c['accent-line'] : c['fg-faint'];
       ctx.lineWidth = line;
-      ctx.setLineDash(ch.rxOnly && !isSel ? [4 * dpr, 3 * dpr] : []);
-      ctx.strokeStyle = isSel ? selColor : ch === hov ? c['accent-line'] : c['fg-faint'];
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(x0 + 0.5, yy + 0.5, x1 - x0 - 1, hh - 1, 4 * dpr); else ctx.rect(x0 + 0.5, yy + 0.5, x1 - x0 - 1, hh - 1);
-      if (isSel) { ctx.fillStyle = c.passband; ctx.fill(); }
-      ctx.stroke();
-      ctx.setLineDash([]);
+      ctx.strokeStyle = stroke;
+      const pin = narrow && p.fixedStyle === 'pin';
+      if (pin) {
+        const r = 4 * dpr, xs = Math.round(cx) + 0.5;
+        ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(xs, yy + 2 * r); ctx.lineTo(xs, yy + hh); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx, yy); ctx.lineTo(cx + r, yy + r); ctx.lineTo(cx, yy + 2 * r); ctx.lineTo(cx - r, yy + r); ctx.closePath();
+        ctx.fillStyle = isSel ? selColor : ch.rxOnly ? c.inset : isHov ? c['accent-line'] : c['fg-muted'];
+        ctx.fill(); ctx.strokeStyle = isSel ? selColor : isHov ? c['accent-line'] : c['fg-muted']; ctx.stroke();
+        x0 = cx - r; x1 = cx + r;
+      } else {
+        ctx.setLineDash(ch.rxOnly && !isSel ? [4 * dpr, 3 * dpr] : []);
+        const rad = narrow ? 2 * dpr : Math.min(4 * dpr, (x1 - x0) / 2);
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x0 + 0.5, yy + 0.5, x1 - x0 - 1, hh - 1, rad); else ctx.rect(x0 + 0.5, yy + 0.5, x1 - x0 - 1, hh - 1);
+        if (isSel) { ctx.fillStyle = c.passband; ctx.fill(); }
+        else if (narrow) { ctx.fillStyle = c.surface; ctx.fill(); }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       const text = [ch.label, ch.rxOnly ? 'RX only' : null].filter(Boolean).join(' · ');
-      if (text) {
+      if (!text) return;
+      ctx.fillStyle = isSel ? selColor : c['fg-muted'];
+      if (!narrow) {
+        ctx.font = `500 ${11 * dpr}px ${this.fontUi}`;
+        ctx.textAlign = 'center';
         const fits = ctx.measureText(text).width < x1 - x0 - 10 * dpr;
         const t = fits ? text : ch.label && ctx.measureText(ch.label).width < x1 - x0 - 10 * dpr ? ch.label : '';
-        ctx.fillStyle = isSel ? selColor : c['fg-muted'];
         if (t) ctx.fillText(t, (x0 + x1) / 2, yy + hh / 2);
+        return;
       }
-    }
+      // beside the mark, when it fits before the next fixed channel and after the last label
+      if (!ch.label) return;
+      ctx.font = `500 ${10 * dpr}px ${this.fontUi}`;
+      ctx.textAlign = 'left';
+      const next = fixed[i + 1] ? this.xOf(fixed[i + 1].hz, W) - minW : W;
+      const lx = x1 + 4 * dpr, tw = ctx.measureText(ch.label).width;
+      if (x0 > labelEnd && lx + tw < next) {
+        ctx.fillText(ch.label, lx, pin ? yy + 4 * dpr : yy + hh / 2);
+        labelEnd = lx + tw + 4 * dpr;
+      } else labelEnd = Math.max(labelEnd, x1);
+    });
+    ctx.textAlign = 'center';
 
     // regions: separators and labels under the lanes
     if (g.regionH) {

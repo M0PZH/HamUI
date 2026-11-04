@@ -48,3 +48,9 @@ test('bandplans: QO-100 narrowband', () => {
   const emerg = p.fixed.find((c) => c.label === 'Emergency');
   assert.equal(txFor(p, emerg), 2400.360e6);
 });
+
+test('normalizePlan: narrow fixed channel options', () => {
+  assert.equal(normalizePlan(bandplans.qo100Narrowband).fixedMinPx, 8);
+  assert.equal(normalizePlan({ ...bandplans.qo100Narrowband, fixedStyle: 'pin' }).fixedStyle, 'pin');
+  assert.equal(normalizePlan({ fixedStyle: 'x' }).fixedStyle, 'box');
+});
