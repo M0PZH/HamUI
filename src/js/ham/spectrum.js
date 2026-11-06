@@ -48,6 +48,7 @@ export class Spectrum extends ScopeBase {
   /** Set (or clear with null) the channel plan drawn under the trace. */
   setChannels(plan) {
     this.options.channels = plan;
+    this._busy = new Map();
     this.plan = normalizePlan(plan);
     const prev = this.channel;
     this.channel = prev && this.plan ? this._findChannel(prev.hz, prev.lane) : null;
@@ -204,13 +205,25 @@ export class Spectrum extends ScopeBase {
     tip.hidden = false;
   }
 
+  /** Override automatic channel detection; null follows the channel plan. */
+  setOccupancy({ thresholdDb = null, hysteresisDb = null } = {}) {
+    for (const [value, max] of [[thresholdDb, 60], [hysteresisDb, 30]]) {
+      if (value != null && (!Number.isFinite(value) || value < 0 || value > max)) throw new RangeError('Invalid occupancy threshold or hysteresis');
+    }
+    if (this.options.occupancyDb === thresholdDb && this.options.occupancyHysteresisDb === hysteresisDb) return;
+    this.options.occupancyDb = thresholdDb;
+    this.options.occupancyHysteresisDb = hysteresisDb;
+    this._busy.clear();
+    this.invalidate();
+  }
+
   /** Occupancy of a channel: true/false, or null when not tracked. */
   _isBusy(ch) {
     const occ = this.plan?.occupancy;
     if (!occ) return null;
     if (typeof occ === 'function') return !!occ(ch);
     const src = this.avg;
-    if (!src) return null;
+    if (!src?.length) return null;
     const n = src.length;
     if (this._floorFrame !== this._frame) {
       // noise floor: 20th percentile of the frame
@@ -223,7 +236,12 @@ export class Spectrum extends ScopeBase {
     if (i1 <= i0) return null;
     let sum = 0;
     for (let i = i0; i < i1; i++) sum += src[i];
-    return sum / (i1 - i0) > this._floor + this.plan.occupancyDb;
+    const threshold = this.options.occupancyDb ?? this.plan.occupancyDb;
+    const hysteresis = this.options.occupancyHysteresisDb ?? this.plan.occupancyHysteresisDb;
+    const wasBusy = this._busy.get(ch) ?? false;
+    const busy = sum / (i1 - i0) - this._floor > threshold - (wasBusy ? hysteresis : 0);
+    this._busy.set(ch, busy);
+    return busy;
   }
 
   _key(e) {

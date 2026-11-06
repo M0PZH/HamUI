@@ -104,3 +104,11 @@ src/js/ham/     spectrum, waterfall, panadapter, meter, frequency, knob, selecto
 src/js/sim/     signal simulator
 docs/, index.html, demo/   documentation and demo pages
 ```
+
+
+Automatic channel occupancy uses a per-channel hysteresis: plans accept
+`occupancyDb` (3 dB above the noise floor) and `occupancyHysteresisDb`
+(2 dB). `spectrum.setOccupancy({ thresholdDb, hysteresisDb })` overrides
+these without replacing the channel plan; null follows the plan. Entry is
+above threshold; exit is at or below threshold minus hysteresis. A zero
+hysteresis gives a single threshold. Custom callbacks remain authoritative.

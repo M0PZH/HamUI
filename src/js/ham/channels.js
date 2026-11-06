@@ -10,6 +10,7 @@
 //     meta: { name, version, date, source },  // optional, informational
 //     select: 'rx+tx' | 'rx',         // whether a click hands out a TX frequency
 //     occupancy: 'auto' | false | (ch) => boolean,
+//     occupancyHysteresisDb: 2,       // clear below occupancyDb minus this margin
 //     occupancyDb: 3,                 // 'auto': mean level this far above the noise floor
 //     laneHeight: null,               // px; 14, or 18 on touch screens
 //     fixedMinPx: 8,                  // narrow fixed channels draw at least this wide
@@ -63,6 +64,7 @@ export function normalizePlan(p) {
     select: p.select === 'rx' ? 'rx' : 'rx+tx',
     occupancy: p.occupancy ?? 'auto',
     occupancyDb: p.occupancyDb ?? 3,
+    occupancyHysteresisDb: p.occupancyHysteresisDb ?? 2,
     laneHeight: p.laneHeight ?? null,
     fixedMinPx: p.fixedMinPx ?? 8,
     fixedStyle: p.fixedStyle === 'pin' ? 'pin' : 'box',
