@@ -67,7 +67,7 @@ test('resampling: stream at 44.1 kHz into a 48 kHz context stays at target', () 
   assert.equal(r.underrunsAfterSettle, 0);
 });
 
-test('prefill: silence until the target fill, then play from the first sample', () => {
+test('prefill: silence until the target fill, then fade in from the first sample', () => {
   const ring = new AudioRing({ target: 0.1 });
   const out = [new Float32Array(Q), new Float32Array(Q)];
   const pcm = new Float32Array(960).fill(0.5);
@@ -78,9 +78,11 @@ test('prefill: silence until the target fill, then play from the first sample', 
   for (let k = 1; k < 6; k++) ring.push([pcm, pcm], 1000 + k * 1800);
   ring.read(out, Q);
   assert.equal(ring.playing, true);
-  assert.ok(Math.abs(out[0][5] - 0.5) < 1e-6);
+  assert.ok(out[0][5] > 0 && out[0][5] < 0.02);
+  ring.read(out, Q);
+  assert.ok(Math.abs(out[0][Q - 1] - 0.5) < 1e-6);
   // position advanced by about one quantum from the first PTS
-  assert.ok(Math.abs(ring.position() - (1000 + (Q * 90000) / 48000)) < 2);
+  assert.ok(Math.abs(ring.position() - (1000 + (2 * Q * 90000) / 48000)) < 2);
 });
 
 test('underrun: silence, counted once, restart at target fill', () => {
@@ -93,7 +95,10 @@ test('underrun: silence, counted once, restart at target fill', () => {
   assert.equal(ring.stats.underruns, 1);
   assert.equal(ring.playing, false);
   ring.read(out, Q);
-  assert.equal(out[0][0], 0);
+  assert.ok(out[0][0] >= 0 && out[0][0] < 1);
+  ring.read(out, Q);
+  ring.read(out, Q);
+  assert.equal(out[0][Q - 1], 0);
   assert.equal(ring.stats.underruns, 1);       // prefilling is not another underrun
   ring.push([pcm], 3600);
   ring.read(out, Q);
@@ -121,7 +126,7 @@ test('controller output is limited to ±0.5 %', () => {
   assert.equal(c.adj, -0.005);
 });
 
-test('AudioStreamPlayer: arrival times feed the jitter estimate; targets up to 1 s', async () => {
+test('AudioStreamPlayer: arrival times feed the jitter estimate; targets up to 3 s', async () => {
   globalThis.performance ??= { now: () => Date.now() };
   const { AudioStreamPlayer } = await import('../../src/js/media/audio-player.js');
   const a = new AudioStreamPlayer({ target: 0.12 });
@@ -137,8 +142,8 @@ test('AudioStreamPlayer: arrival times feed the jitter estimate; targets up to 1
   assert.ok(Math.abs(a.jitter.spread - 0.3) < 1e-6);
   const fixed = new AudioStreamPlayer({ target: 0.8, adaptive: false });
   assert.equal(fixed.minTarget, 0.8);
-  fixed.setTarget(2); assert.equal(fixed.minTarget, 1);
-  assert.equal(fixed.effTarget, 1);
+  fixed.setTarget(2); assert.equal(fixed.minTarget, 2);
+  assert.equal(fixed.effTarget, 2);
 });
 
 test('AudioRing: a gap in the stream time is played as silence; a large skip is not', () => {
@@ -163,7 +168,34 @@ test('AudioRing: a gap in the stream time is played as silence; a large skip is 
   r.push(one(480), 900 + 900);            // 10 ms gap
   const out = [new Float32Array(1440)];
   r.read(out, 1440);
-  assert.equal(out[0][100], 1);
+  assert.ok(out[0][100] > 0 && out[0][100] < 1);
   assert.equal(out[0][700], 0);
   assert.equal(out[0][1200], 1);
+});
+
+test('overrun splice and underrun tail have bounded sample steps', () => {
+  const r = new AudioRing({ target: 0.04 });
+  const out = [new Float32Array(128)];
+  r.push([new Float32Array(4000).fill(0.8)], 0);
+  r.read(out, 128); r.read(out, 128); r.read(out, 128);
+  let last = out[0][127];
+  r.push([new Float32Array(6000).fill(-0.8)], 7500);
+  assert.ok(r.stats.drops > 0);
+  for (let j = 0; j < 70; j++) {
+    r.read(out, 128);
+    for (const v of out[0]) {
+      assert.ok(Math.abs(v - last) < 0.02, `sample step ${v - last}`);
+      last = v;
+    }
+  }
+  assert.ok(r.stats.underruns > 0);
+  assert.equal(last, 0);
+});
+
+test('adaptive buffering respects a three-second user minimum', async () => {
+  const { AudioStreamPlayer } = await import('../../src/js/media/audio-player.js');
+  const p = new AudioStreamPlayer({ target: 3 });
+  for (let i = 0; i < 300; i++) p.noteArrival(i * 1800, 100 + i * 0.02);
+  p.setTarget(3);
+  assert.equal(p.effTarget, 3);
 });

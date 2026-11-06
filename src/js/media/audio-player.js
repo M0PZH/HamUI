@@ -24,7 +24,7 @@ const nowS = () => performance.now() / 1000;
 export class AudioStreamPlayer extends EventTarget {
   /**
    * @param {object} [o]
-   * @param {number} [o.target=0.12]    minimum buffer, seconds (0.04..1); jitter can raise it (to 1 s)
+   * @param {number} [o.target=0.12]    minimum buffer, seconds (0.04..3); jitter can raise lower targets to 1 s
    * @param {boolean} [o.adaptive=true] raise the target to cover the measured arrival jitter
    * @param {number} [o.startReserve=0.25] with adaptive, buffer at least this much (s) until
    *   3 s of arrivals are known; 0 starts at `target` straight away
@@ -107,7 +107,7 @@ export class AudioStreamPlayer extends EventTarget {
   set volume(v) { this._volume = Math.max(0, Math.min(1, +v || 0)); this._applyGain(); }
   get muted() { return this._muted; }
   set muted(m) { this._muted = !!m; this._applyGain(); }
-  _applyGain() { if (this.gain) this.gain.gain.value = this._muted ? 0 : this._volume; }
+  _applyGain() { if (this.gain) this.gain.gain.setTargetAtTime(this._muted ? 0 : this._volume, this.ctx.currentTime, 0.005); }
 
   /**
    * Queue audio. Before start() it is dropped (the stream time still advances).
@@ -158,7 +158,7 @@ export class AudioStreamPlayer extends EventTarget {
     this.node?.port.postMessage({ type: 'gaps', fill: this.fillGaps, maxGap });
   }
 
-  /** Minimum buffer in seconds (0.04..1). With adaptive: false it is the target. */
+  /** Minimum buffer in seconds (0.04..3). With adaptive: false it is the target. */
   setTarget(sec) { this.minTarget = clampTarget(sec); this._adaptTarget(true); }
 
   _adaptTarget(force = false) {
@@ -225,7 +225,7 @@ export class AudioStreamPlayer extends EventTarget {
   }
 }
 
-function clampTarget(s) { return Math.max(0.04, Math.min(1, +s || 0.12)); }
+function clampTarget(s) { return Math.max(0.04, Math.min(3, +s || 0.12)); }
 
 /** Peak of an AnalyserNode's current window on a -60..0 dBFS scale, as 0..1 (for a meter). */
 export function analyserLevel(analyser, buf) {

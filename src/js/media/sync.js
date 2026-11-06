@@ -297,7 +297,7 @@ export class JitterEstimator {
 
 /** Audio buffer target: the user's minimum, raised to cover the measured jitter (capped). */
 export function audioTarget(minTarget, spread, { margin = 0.04, max = 1.0 } = {}) {
-  return Math.min(max, Math.max(minTarget, spread + margin));
+  return Math.max(minTarget, Math.min(max, spread + margin));
 }
 
 /**

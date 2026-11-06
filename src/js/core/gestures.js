@@ -71,6 +71,7 @@ export function attachScopeGestures(el, h) {
 
   const onDown = (e) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.pointerType === 'touch') h.leave?.();
     try { el.setPointerCapture?.(e.pointerId); } catch { /* synthetic or already released pointer */ }
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.size === 1) {
@@ -82,7 +83,8 @@ export function attachScopeGestures(el, h) {
   };
 
   const onMove = (e) => {
-    h.hover?.(e.clientX, e.clientY);
+    if (e.pointerType === 'mouse' || (e.pointerType === 'pen' && !e.buttons)) h.hover?.(e.clientX, e.clientY);
+    else h.leave?.();
     const prev = pointers.get(e.pointerId);
     if (!prev) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -106,6 +108,7 @@ export function attachScopeGestures(el, h) {
   };
 
   const onUp = (e, cancelled) => {
+    if (e.pointerType === 'touch' || cancelled) h.leave?.();
     if (!pointers.has(e.pointerId)) return;
     pointers.delete(e.pointerId);
     pinch = null;
@@ -126,7 +129,7 @@ export function attachScopeGestures(el, h) {
   };
   const onPointerUp = (e) => onUp(e, false);
   const onPointerCancel = (e) => onUp(e, true);
-  const onLeave = (e) => { if (e.pointerType === 'mouse' && !pointers.size) h.leave?.(); };
+  const onLeave = (e) => { if (!pointers.size) h.leave?.(); };
 
   el.addEventListener('wheel', onWheel, { passive: false });
   el.addEventListener('gesturestart', onGestureStart);

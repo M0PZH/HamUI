@@ -65,7 +65,7 @@ export class AudioRing {
    * @param {object} o
    * @param {number} o.inRate   stream sample rate
    * @param {number} o.outRate  output (AudioContext) sample rate
-   * @param {number} o.target   seconds (40..500 ms)
+   * @param {number} o.target   seconds (40..3000 ms)
    * @param {number} o.overrunFactor  drop to target when the fill exceeds this x target
    * @param {number} o.maxSeconds     hard cap on buffered audio
    * @param {boolean} o.fillGaps      insert silence where the stream time skips ahead
@@ -85,6 +85,9 @@ export class AudioRing {
     this.chunks = [];        // {planes: Float32Array[], length, ticks}
     this.pos = 0;            // fractional read position in chunks[0]
     this.frames = 0;         // input frames buffered from chunks[0] start
+    this.last = new Float32Array(32);
+    this.fade = 0;
+    this.fadeFrom = new Float32Array(32);
     this.playing = false;    // false: prefilling (silence out)
     this.stats = { underruns: 0, drops: 0, droppedSeconds: 0, played: 0, gaps: 0, gapSeconds: 0 };
   }
@@ -160,6 +163,8 @@ export class AudioRing {
     this.pos += n;
     this._advance();
     this.ctl.reset(true);
+    this.fadeFrom.set(this.last);
+    this.fade = Math.max(1, Math.round(this.outRate * 0.005));
   }
 
   _advance() {
@@ -182,9 +187,11 @@ export class AudioRing {
     if (!this.playing) {
       if (this.fill >= this.ctl.target && this.chunks.length) {
         this.playing = true;
+        this.fadeFrom.set(this.last);
+        this.fade = Math.max(1, Math.round(this.outRate * 0.005));
         this.ctl.reset(true);
       } else {
-        for (const ch of out) ch.fill(0, 0, n);
+        this._silence(out, 0, n);
         return;
       }
     }
@@ -205,18 +212,35 @@ export class AudioRing {
       for (let o = 0; o < outCh; o++) {
         const a = c.planes[o < inCh ? o : inCh - 1][k];
         const b = next.planes[o < next.planes.length ? o : next.planes.length - 1][kn];
-        out[o][i] = a + (b - a) * frac;
+        const v = a + (b - a) * frac;
+        const mix = this.fade / Math.max(1, Math.round(this.outRate * 0.005));
+        out[o][i] = v * (1 - mix) + this.fadeFrom[o] * mix;
+        this.last[o] = out[o][i];
       }
+      if (this.fade > 0) this.fade--;
       this.pos += step;
     }
     if (i < n) {
       // ran dry: silence, then prefill to the target before playing again
-      for (const ch of out) ch.fill(0, i, n);
+      this._silence(out, i, n);
       this.playing = false;
       this.stats.underruns++;
     }
     this.stats.played += i;
     this._advance();
+  }
+
+  _silence(out, start, end) {
+    const step = 1 / Math.max(1, Math.round(this.outRate * 0.005));
+    for (let o = 0; o < out.length; o++) {
+      let v = this.last[o];
+      for (let i = start; i < end; i++) {
+        const amplitude = Math.max(0, Math.abs(v) - step);
+        v = amplitude > 0 ? Math.sign(v) * amplitude : 0;
+        out[o][i] = v;
+      }
+      this.last[o] = v;
+    }
   }
 
   /** What the main thread needs for the clock and the stats. */
