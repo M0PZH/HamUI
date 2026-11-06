@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>HamUI Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <script type="module" crossorigin src="./assets/playground-Bd8yEoV7.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/index-D-fzwP5k.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-CC8kVx-J.css">
+  <link rel="stylesheet" crossorigin href="./assets/docs-CE2ToDqV.css">
+</head>
+<body class="pg-body">
+<header class="doc-top">
+  <div class="ham-container ham-container-fluid doc-top-inner">
+    <a class="doc-brand" href="./index.html">HamUI <small>Playground</small></a>
+    <select class="ham-select ham-input-sm" id="preset" aria-label="Example" style="width: auto"></select>
+    <span class="ham-spacer"></span>
+    <span class="ham-faint ham-text-sm" id="status"></span>
+    <button class="ham-btn ham-btn-sm" id="shareBtn">Copy link</button>
+    <button class="ham-btn ham-btn-sm" id="resetBtn">Reset example</button>
+    <button class="ham-btn ham-btn-sm ham-btn-primary" id="runBtn" data-ham-tooltip="Ctrl/⌘ + Enter">Run</button>
+    <div class="ham-seg ham-seg-sm" id="previewTheme" data-ham="segmented" data-label="Preview theme" data-items='[{"value":"dark","label":"Dark"},{"value":"light","label":"Light"}]' data-value="dark"></div>
+  </div>
+</header>
+
+<main class="pg-main">
+  <section class="pg-editor" aria-label="Code">
+    <div class="ham-tabs pg-tabs" data-ham="tabs" id="editorTabs">
+      <button role="tab" aria-controls="paneHtml" aria-selected="true">HTML</button>
+      <button role="tab" aria-controls="paneJs">JavaScript</button>
+    </div>
+    <div id="paneHtml" class="pg-pane"><textarea id="html" class="pg-code" spellcheck="false" aria-label="HTML"></textarea></div>
+    <div id="paneJs" class="pg-pane" hidden><textarea id="js" class="pg-code" spellcheck="false" aria-label="JavaScript"></textarea></div>
+    <div class="pg-help ham-text-sm ham-faint">
+      Your JS can use <code>HamUI</code>, <code>root</code> (the preview container), <code>sim</code> (a SignalSimulator) and <code>every(ms, fn)</code> (an interval that is cleared when you run again).
+    </div>
+    <pre class="pg-error" id="error" hidden></pre>
+  </section>
+  <section class="pg-preview" id="preview" data-theme="dark" aria-label="Preview"></section>
+</main>
+
+</body>
+</html>
