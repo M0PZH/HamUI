@@ -93,3 +93,8 @@
 }
 @media (prefers-reduced-motion: reduce) { .ham-video-level i { transition: none; } }
 
+/* Bottom statistics must leave room for the title even with long metadata. */
+.ham-video-stats[data-pos="bottom-right"], .ham-video-stats[data-pos="bottom-left"] {
+  box-sizing: border-box;
+  max-height: calc(100% - 64px);
+}
