@@ -68,7 +68,7 @@ it has no version number, so the key is its year. `HamUI.regionAt(plan, hz)` ret
 
 A separate entry (`import { AudioStreamPlayer } from 'hamui/media'`, UMD global `HamUIMedia`) with no DOM components:
 `AudioStreamPlayer` plays streamed PCM through an AudioWorklet ring buffer whose PI-controlled resampler absorbs sender/sound-card
-clock drift, with a jitter-adaptive target, and plays gaps in the stream time as silence; `SyncCore` (with optional timeline epochs), `AudioClock`, `ArrivalClock`, `JitterEstimator` and `VideoQueue` do A/V sync
+clock drift, with a jitter-adaptive target, and plays gaps in the stream time as silence, faded in and out; `SyncCore` (with optional timeline epochs), `AudioClock`, `ArrivalClock`, `JitterEstimator` and `VideoQueue` do A/V sync
 on an audio master clock; `PtsUnwrapper` and friends handle 90 kHz MPEG PTS. From the PlutoSAT station front end.
 
 `hamui/css` is the whole stylesheet; `hamui/css/core` leaves out the VideoPanel and DecodeList styles

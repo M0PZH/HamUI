@@ -169,8 +169,22 @@ test('AudioRing: a gap in the stream time is played as silence; a large skip is 
   const out = [new Float32Array(1440)];
   r.read(out, 1440);
   assert.ok(out[0][100] > 0 && out[0][100] < 1);
-  assert.equal(out[0][700], 0);
-  assert.equal(out[0][1200], 1);
+  assert.equal(out[0][800], 0);           // after the 5 ms fade out
+  assert.equal(out[0][1200], 1);          // after the 5 ms fade in
+});
+
+test('AudioRing: the edges of inserted silence fade instead of clicking', () => {
+  const r = new AudioRing({ inRate: 48000, outRate: 48000, target: 0.001 });
+  const sine = (n, t0) => [Float32Array.from({ length: n }, (_, i) => 0.9 * Math.sin(2 * Math.PI * 200 * (t0 + i) / 48000))];
+  r.push(sine(600, 0), 0);
+  r.push(sine(600, 900), 900 * 1.875 + 450);  // ~5 ms gap
+  const out = [new Float32Array(1800)];
+  r.read(out, 1800);
+  assert.equal(r.stats.gaps, 1);
+  // a 200 Hz sine at 0.9 moves at most ~0.024 per sample; a fade adds at most 0.9/240
+  let worst = 0;
+  for (let i = 1; i < 1500; i++) worst = Math.max(worst, Math.abs(out[0][i] - out[0][i - 1]));
+  assert.ok(worst < 0.03, `largest sample step ${worst}`);
 });
 
 test('overrun splice and underrun tail have bounded sample steps', () => {

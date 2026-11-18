@@ -120,6 +120,7 @@ export class AudioRing {
     this.playing = false;
     this._lastTicks = null;
     this._pushEnd = null;
+    this._cur = null;
     this.ctl.reset(true);
   }
 
@@ -137,16 +138,16 @@ export class AudioRing {
         const n = Math.round(gap * this.inRate);
         this.stats.gaps++;
         this.stats.gapSeconds += n / this.inRate;
-        this._queue(planes.map(() => new Float32Array(n)), this._pushEnd);
+        this._queue(planes.map(() => new Float32Array(n)), this._pushEnd, true);
       }
     }
     this._pushEnd = ticks != null ? ticks + (length * 90000) / this.inRate : null;
     this._queue(planes, ticks);
   }
 
-  _queue(planes, ticks) {
+  _queue(planes, ticks, gap = false) {
     const length = planes[0].length;
-    this.chunks.push({ planes, length, ticks });
+    this.chunks.push({ planes, length, ticks, gap });
     this.frames += length;
     const max = this.maxSeconds * this.inRate;
     if (this.frames - this.pos > max) this._drop(this.frames - this.pos - this.ctl.target * this.inRate);
@@ -163,8 +164,7 @@ export class AudioRing {
     this.pos += n;
     this._advance();
     this.ctl.reset(true);
-    this.fadeFrom.set(this.last);
-    this.fade = Math.max(1, Math.round(this.outRate * 0.005));
+    this._startFade();
   }
 
   _advance() {
@@ -187,8 +187,7 @@ export class AudioRing {
     if (!this.playing) {
       if (this.fill >= this.ctl.target && this.chunks.length) {
         this.playing = true;
-        this.fadeFrom.set(this.last);
-        this.fade = Math.max(1, Math.round(this.outRate * 0.005));
+        this._startFade();
         this.ctl.reset(true);
       } else {
         this._silence(out, 0, n);
@@ -205,13 +204,20 @@ export class AudioRing {
       if (!c) break;
       let k = Math.floor(this.pos);
       if (k >= c.length) { this._advance(); c = this.chunks[0]; if (!c) break; k = Math.floor(this.pos); }
+      if (c !== this._cur) {
+        // into or out of inserted silence: crossfade from the last output
+        // sample instead of stepping to zero and back
+        if (this._cur && (c.gap || this._cur.gap)) this._startFade();
+        this._cur = c;
+      }
       const frac = this.pos - k;
       let next = c, kn = k + 1;
       if (kn >= c.length) { next = this.chunks[1]; kn = 0; if (!next) break; }
+      const hold = next !== c && next.gap !== c.gap; // don't interpolate across a gap edge
       const inCh = c.planes.length;
       for (let o = 0; o < outCh; o++) {
         const a = c.planes[o < inCh ? o : inCh - 1][k];
-        const b = next.planes[o < next.planes.length ? o : next.planes.length - 1][kn];
+        const b = hold ? a : next.planes[o < next.planes.length ? o : next.planes.length - 1][kn];
         const v = a + (b - a) * frac;
         const mix = this.fade / Math.max(1, Math.round(this.outRate * 0.005));
         out[o][i] = v * (1 - mix) + this.fadeFrom[o] * mix;
@@ -228,6 +234,11 @@ export class AudioRing {
     }
     this.stats.played += i;
     this._advance();
+  }
+
+  _startFade() {
+    this.fadeFrom.set(this.last);
+    this.fade = Math.max(1, Math.round(this.outRate * 0.005));
   }
 
   _silence(out, start, end) {
