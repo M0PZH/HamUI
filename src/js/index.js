@@ -6,6 +6,8 @@ import { bindModalTriggers, Modal } from './components/modal.js';
 import { Tabs } from './components/tabs.js';
 import { Segmented } from './components/segmented.js';
 import { RangeSlider, gradientCss } from './components/range-slider.js';
+import { BottomSheet, settleSnap } from './components/bottom-sheet.js';
+import { VideoStage, fitFrames, pickFrame } from './components/video-stage.js';
 import { toast } from './components/toast.js';
 import { Spectrum } from './ham/spectrum.js';
 import { Waterfall } from './ham/waterfall.js';
@@ -45,6 +47,8 @@ export const registry = {
   knob: Knob,
   segmented: Segmented,
   'range-slider': RangeSlider,
+  'bottom-sheet': BottomSheet,
+  'video-stage': VideoStage,
   'band-selector': BandSelector,
   'mode-selector': ModeSelector,
   clock: Clock,
@@ -98,7 +102,7 @@ export {
   getInstance,
   Spectrum, Waterfall, Panadapter, FrequencyView, linkView,
   Meter, meterPresets, FrequencyDisplay, Knob,
-  Segmented, RangeSlider, gradientCss, BandSelector, ModeSelector,
+  Segmented, RangeSlider, gradientCss, BottomSheet, settleSnap, VideoStage, fitFrames, pickFrame, BandSelector, ModeSelector,
   Clock, TxIndicator, Ptt,
   Tabs, Modal, toast,
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,
@@ -112,7 +116,7 @@ const HamUI = {
   init, registry, getInstance, theme,
   Spectrum, Waterfall, Panadapter, FrequencyView, linkView,
   Meter, meterPresets, FrequencyDisplay, Knob,
-  Segmented, RangeSlider, gradientCss, BandSelector, ModeSelector,
+  Segmented, RangeSlider, gradientCss, BottomSheet, settleSnap, VideoStage, fitFrames, pickFrame, BandSelector, ModeSelector,
   Clock, TxIndicator, Ptt,
   Tabs, Modal, toast,
   bands, HF_BANDS, getBand, bandForFrequency, modes, defaultMode, passbandFor,

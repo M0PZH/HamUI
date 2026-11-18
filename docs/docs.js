@@ -242,3 +242,35 @@ setInterval(() => {
     log('#docDecodesLog', `ham:select → ${d.message} · from ${d.from ?? '—'}${d.grid ? ` · ${d.grid}` : ''}${d.report != null ? ` · ${d.report} dB` : ''} · ${d.freq} Hz`);
   });
 }
+
+/* theatre: a video stage with two test cards, a slot switch and a bottom sheet */
+{
+  const stage = new HamUI.VideoStage('#docStage', { count: 2, extra: 44 });
+  const tint = [['#1d3a52', '#0d1a26', 'RX 0 · GB3HV'], ['#3a1d40', '#2a160d', 'RX 1 · DL0ABC']];
+  stage.frames.forEach((f, i) => {
+    const vp = new HamUI.VideoPanel(f, { aspect: 'fill', label: `Picture ${i}`, audio: i === 0, stats: false });
+    vp.setTitle(tint[i][2].split(' · ')[1], i ? 'H.264 · 720×576' : 'H.265 · 1280×720');
+    const cv = vp.canvas, ctx = cv.getContext('2d');
+    cv.width = 480; cv.height = 270;
+    const g = ctx.createLinearGradient(0, 0, 480, 270);
+    g.addColorStop(0, tint[i][0]); g.addColorStop(1, tint[i][1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 480, 270);
+    ctx.fillStyle = '#fff'; ctx.font = '600 22px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(tint[i][2], 240, 145);
+  });
+  const btns = [...document.querySelectorAll('#docTheatreSlots button')];
+  const show = () => {
+    btns.forEach((b, i) => {
+      b.setAttribute('aria-pressed', String(stage.selected === i));
+      b.title = !stage.visible[i] ? `Show RX ${i}` : stage.selected === i && stage.count > 1 ? `Close RX ${i}` : `Select RX ${i}`;
+      b.style.opacity = stage.visible[i] ? '' : '0.55';
+    });
+    log('#docTheatreLog', `selected RX ${stage.selected} · showing ${stage.visible.map((v, i) => (v ? `RX ${i}` : null)).filter(Boolean).join(' + ')} · sheet ${sheet.snap}`);
+  };
+  btns.forEach((b) => b.addEventListener('click', () => stage.pick(+b.dataset.i)));
+  stage.on('change', show);
+  stage.on('select', show);
+  const sheet = new HamUI.BottomSheet('#docSheet', { snaps: { hidden: 20, peek: 64, open: 0.5 }, snap: 'peek', key: 'i', label: 'Receiver panel' });
+  sheet.on('change', show);
+  show();
+}

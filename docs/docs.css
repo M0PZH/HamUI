@@ -81,3 +81,10 @@
   .pg-code { min-height: 260px; }
   .pg-preview { padding: var(--ham-space-4); }
 }
+
+/* theatre example */
+.doc-theatre { height: 420px; display: flex; flex-direction: column; background: #07080b; border: 1px solid var(--ham-border); border-radius: var(--ham-radius-lg); overflow: hidden; }
+.doc-theatre-top { display: flex; align-items: center; gap: var(--ham-space-3); padding: 8px 10px; }
+.doc-theatre-stage { flex: 1; min-height: 0; padding: 0 10px 10px; }
+.doc-theatre-peek { display: flex; align-items: center; gap: var(--ham-space-3); padding: 0 14px 10px; }
+.doc-theatre-body { padding: 4px 14px 14px; }

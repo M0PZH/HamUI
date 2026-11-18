@@ -49,6 +49,8 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 | LockStatus | `lock-status` | demodulator lock steps (Search → Header → Demod → FEC → TS) |
 | TrendChart | `trend` | rolling history of a reading with threshold lines |
 | VideoPanel | `video` | canvas for decoded video: title, message and stats overlays, mute/volume/level, full screen |
+| VideoStage | `video-stage` | 1–n 16:9 frames that fill the space (side by side or stacked), one selected; `pick(i)` selects, and closes the selected one on a second press |
+| BottomSheet | `bottom-sheet` | a panel along the bottom of a flex column with snap heights (hidden / peek / open): drag, flick, click, keys |
 | DecodeList | `decodes` | FT8/FT4 receive log: cycles, CQ / to-me / TX highlighting, filters, `HamUI.parseFt8()` |
 | Tabs, Modal, toast() | `tabs`, `modal` | general UI |
 

@@ -56,6 +56,7 @@
     <a href="#station">Station status</a>
     <a href="#datv">DVB-S2 / DATV</a>
     <a href="#video">Video panel</a>
+    <a href="#theatre">Theatre</a>
     <a href="#decodes">Decode list</a>
     <a href="#media">Streamed audio</a>
     <span class="ham-label">Reference</span>
@@ -666,6 +667,33 @@ vp.addButton({ label: 'Record', side: 'right', onclick });</code></pre>
         <tr><td>statsPosition</td><td>'top-right'</td><td>Where the stats overlay sits: <code>'top-right'</code> | <code>'bottom-right'</code> | <code>'top-left'</code> | <code>'bottom-left'</code></td></tr>
         <tr><td>volume / muted</td><td>1 / false</td><td>Initial values; <code>setVolume()</code>, <code>setMuted()</code></td></tr>
       </tbody></table>
+    </section>
+
+    <section class="doc-section" id="theatre">
+      <h2>Theatre: video stage and bottom sheet</h2>
+      <p>For a page that is mostly pictures. <code>VideoStage</code> fits one or more 16:9 frames into its space as large as they go, side by side or stacked, and keeps one selected; put a <code>VideoPanel</code> in each of <code>stage.frames</code>. <code>pick(i)</code> is what a slot switch does: it selects a frame, and pressing the selected one again closes that picture (the last one stays); a closed one opens again. <code>BottomSheet</code> is the last child of a flex column and takes its height from what is above it: drag or click its handle between <b>hidden</b>, <b>peek</b> and <b>open</b> (a quick flick goes on to the next one), or use <kbd>↑</kbd>/<kbd>↓</kbd> on the handle and the page-wide <code>key</code>. Here: <kbd>I</kbd>.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="doc-theatre" id="docTheatre">
+            <div class="doc-theatre-top">
+              <div class="ham-seg ham-seg-sm ham-seg-mono" id="docTheatreSlots"><button type="button" data-i="0">RX 0</button><button type="button" data-i="1">RX 1</button></div>
+              <span class="ham-faint ham-text-sm" id="docTheatreLog"></span>
+            </div>
+            <div class="doc-theatre-stage" id="docStage"></div>
+            <div id="docSheet">
+              <div class="doc-theatre-peek"><span class="ham-badge ham-badge-rx">Locked</span><span class="ham-mono">QPSK 2/3 · 333 kS · MER 8.9 dB</span></div>
+              <div class="doc-theatre-body ham-text-sm ham-muted">The open sheet: receiver details, settings, spectrum, events…</div>
+            </div>
+          </div>
+        </div>
+        <pre><code>const stage = new HamUI.VideoStage('#stage', { count: 2, extra: 44 });   // extra: the panel's control bar
+const panels = stage.frames.map((f) =&gt; new HamUI.VideoPanel(f, { aspect: 'fill' }));
+stage.on('select', (e) =&gt; setSlot(e.detail.index));      // a click on a picture, or pick()
+stage.on('change', (e) =&gt; save(e.detail.visible));
+rx1Button.onclick = () =&gt; stage.pick(1);                  // select; again: close that picture
+const sheet = new HamUI.BottomSheet('#sheet', { snaps: { hidden: 20, peek: 112, open: 0.54 }, snap: 'peek', key: 'i' });
+sheet.on('change', (e) =&gt; save(e.detail.snap));</code></pre>
+      </div>
     </section>
 
     <section class="doc-section" id="decodes">
