@@ -36,6 +36,7 @@
     <a href="#buttons">Buttons</a>
     <a href="#segmented">Segmented control</a>
     <a href="#forms">Forms</a>
+    <a href="#range-slider">Range slider</a>
     <a href="#badges">Badges &amp; lamps</a>
     <a href="#panels">Panels</a>
     <a href="#tabs">Tabs</a>
@@ -193,6 +194,23 @@ HamUI.theme.onChange(() =&gt; …);  // ham:themechange is also dispatched on do
             <label class="ham-switch"><input type="checkbox" checked> Hold Tx frequency</label>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="doc-section" id="range-slider">
+      <h2>Range slider</h2>
+      <p>A low/high window on one track, for spectrum and waterfall levels. Drag a handle to move one end, drag the bar to move both, click a number to type it.
+        Arrow keys move a focused handle by one step (<kbd>Shift</kbd> or <kbd>PgUp</kbd>/<kbd>PgDn</kbd> by ten). <code>ham:input</code> fires while dragging, <code>ham:change</code> when a gesture or edit ends, both with <code>{value: [low, high]}</code>.
+        <code>gradient</code> fills the bar with a colour map (<code>'theme'</code>, <code>'inferno'</code>…, or an array of colours); <code>.extra</code> takes your own controls.</p>
+      <div class="doc-example">
+        <div class="doc-preview">
+          <div class="ham-stack" style="max-width: 440px">
+            <div data-ham="range-slider" data-label="Spectrum range" data-min="-170" data-max="0" data-value="[-128,-62]" data-min-gap="10" data-unit="dBm"></div>
+            <div data-ham="range-slider" id="docWfRange" data-label="Waterfall range" data-min="-170" data-max="0" data-value="[-125,-75]" data-min-gap="5" data-unit="dBm" data-gradient="theme"></div>
+          </div>
+        </div>
+        <pre><code>const wf = new HamUI.RangeSlider(el, { label: 'Waterfall range', min: -170, max: 0, value: [-125, -75], minGap: 5, unit: 'dBm', gradient: 'theme' });
+wf.on('input', (e) =&gt; waterfall.setLevels(...e.detail.value));</code></pre>
       </div>
     </section>
 

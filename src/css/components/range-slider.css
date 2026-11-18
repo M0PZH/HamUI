@@ -1,0 +1,49 @@
+/* RangeSlider: two handles on one track. The track is a full hit target;
+   the drawn rail is thin. */
+.ham-rs { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ham-rs-head { display: flex; align-items: baseline; gap: var(--ham-space-2); min-width: 0; }
+.ham-rs-label { flex: 1; min-width: 0; font-size: var(--ham-text-sm); color: var(--ham-fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ham-rs-extra { display: inline-flex; align-items: center; gap: var(--ham-space-2); }
+.ham-rs-extra:empty { display: none; }
+.ham-rs-values { display: inline-flex; align-items: baseline; gap: 2px; font: var(--ham-text-sm) var(--ham-font-mono); font-variant-numeric: tabular-nums; color: var(--ham-fg-faint); white-space: nowrap; }
+.ham-rs-num {
+  box-sizing: border-box; width: calc(4ch + 10px); padding: 1px 4px; margin: 0;
+  border: 1px solid transparent; border-radius: var(--ham-radius-sm);
+  background: transparent; color: var(--ham-fg); font: inherit; text-align: right;
+}
+.ham-rs-num:hover { border-color: var(--ham-border-strong); }
+.ham-rs-num:focus { outline: none; border-color: var(--ham-accent); background: var(--ham-inset); }
+.ham-rs-unit { margin-left: 4px; }
+.ham-rs-track {
+  --ham-rs-a: 0%; --ham-rs-b: 100%; --ham-rs-thumb: 16px;
+  position: relative; height: 28px; cursor: pointer; touch-action: none;
+  margin: 0 calc(var(--ham-rs-thumb) / 2);
+}
+.ham-rs-rail, .ham-rs-fill { position: absolute; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; }
+.ham-rs-rail { left: calc(var(--ham-rs-thumb) / -2); right: calc(var(--ham-rs-thumb) / -2); background: var(--ham-surface-2); box-shadow: inset 0 0 0 1px var(--ham-border); }
+.ham-rs-fill { left: var(--ham-rs-a); right: calc(100% - var(--ham-rs-b)); background: var(--ham-accent-line); cursor: grab; }
+.ham-rs.has-gradient .ham-rs-fill { height: 8px; margin-top: -4px; }
+/* a wider invisible grab area for the bar */
+.ham-rs-fill::before { content: ""; position: absolute; inset: -9px 0; }
+.ham-rs-track.is-moving, .ham-rs-track.is-moving .ham-rs-fill { cursor: grabbing; }
+.ham-rs-thumb {
+  position: absolute; top: 50%; z-index: 1;
+  width: var(--ham-rs-thumb); height: var(--ham-rs-thumb);
+  margin: calc(var(--ham-rs-thumb) / -2) 0 0 calc(var(--ham-rs-thumb) / -2);
+  border-radius: 50%; border: 2px solid var(--ham-surface);
+  background: var(--ham-fg);
+  box-shadow: 0 0 0 1px var(--ham-border-strong), 0 1px 3px rgb(0 0 0 / 0.35);
+  cursor: ew-resize;
+}
+.ham-rs-thumb.is-low { left: var(--ham-rs-a); }
+.ham-rs-thumb.is-high { left: var(--ham-rs-b); }
+.ham-rs-thumb:focus-visible, .ham-rs-thumb.is-active { outline: none; box-shadow: 0 0 0 1px var(--ham-accent), 0 0 0 5px var(--ham-accent-weak); }
+.ham-rs-thumb.is-active { z-index: 2; }
+.ham-rs-ticks { position: relative; height: 14px; margin: -4px calc(var(--ham-rs-thumb, 16px) / 2) 0; font: 10px var(--ham-font-mono); color: var(--ham-fg-faint); font-variant-numeric: tabular-nums; }
+@media (pointer: coarse) {
+  .ham-rs-track { --ham-rs-thumb: 24px; height: var(--ham-hit); }
+}
+.ham-rs-ticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.ham-rs-ticks span.is-start { transform: translateX(calc(var(--ham-rs-thumb, 16px) / -2)); }
+.ham-rs-ticks span.is-end { transform: translateX(calc(-100% + var(--ham-rs-thumb, 16px) / 2)); }
+@media (pointer: coarse) { .ham-rs-ticks { --ham-rs-thumb: 24px; } }

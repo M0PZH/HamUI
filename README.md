@@ -42,6 +42,7 @@ Without a bundler the source works natively: link `src/css/hamui.css` and `impor
 | Knob | `knob` | drag, wheel, arrow keys; `endless: true` for relative VFO tuning (`ham:change` {delta, steps, value}) |
 | BandSelector / ModeSelector | `band-selector` / `mode-selector` | built on `Segmented` |
 | Segmented | `segmented` | one-of-few control |
+| RangeSlider | `range-slider` | two handles for a [low, high] window (dB levels): drag an end or the bar, type the numbers; `gradient` shows a colour map |
 | Clock, TxIndicator, Ptt | `clock`, `trx`, `ptt` | station status |
 | Constellation | `constellation` | DVB-S2 I/Q density plot with QPSK/8PSK/16APSK/32APSK overlay |
 | MerMeter | `mer-meter` | MER against the MODCOD's Es/N0 threshold, with decoding margin |
