@@ -479,6 +479,7 @@ spec.setTransmitting(true);                     // the selected channel turns re
         <tr><td>offsetHz / txHz</td><td>null</td><td>How the TX frequency follows from the channel</td></tr>
         <tr><td>select</td><td>'rx+tx'</td><td><code>'rx'</code> leaves <code>txHz</code> null</td></tr>
         <tr><td>occupancy / occupancyDb</td><td>'auto' / 3</td><td>Marks a channel occupied when its mean level is this far over the noise floor</td></tr>
+        <tr><td>occupancyHysteresisDb</td><td>2</td><td>An occupied channel clears only when it falls this far below <code>occupancyDb</code>, so a signal near the threshold does not flicker. <code>spectrum.setOccupancy({ thresholdDb, hysteresisDb })</code> overrides both without replacing the plan (null follows the plan)</td></tr>
         <tr><td>laneHeight</td><td>14 (18 on touch)</td><td>Row height in px. The spectrum grows by the strip's height, set in <code>--ham-channel-strip</code></td></tr>
         <tr><td>fixedMinPx / fixedStyle</td><td>8 / 'box'</td><td>Fixed channels too narrow for the span (a 5 kHz beacon on a 500 kHz view) draw at least this wide with the label beside them, or as a pin (<code>'pin'</code>). The click target is at least 12 px (20 px on touch)</td></tr>
       </tbody></table>
@@ -723,11 +724,11 @@ HamUI.parseFt8('IZ1AAA M0PZH R-12');         // {to:'IZ1AAA', from:'M0PZH', repo
 
     <section class="doc-section" id="media">
       <h2>Streamed audio</h2>
-      <p><code>hamui/media</code> is a separate entry with no DOM components, so the UI bundle stays the same size. <code>AudioStreamPlayer</code> plays streamed PCM (DATV audio, SDR audio over a WebSocket) through an AudioWorklet ring buffer. A slow PI controller nudges the playback rate by at most 0.5&nbsp;% to absorb the clock difference between sender and sound card. It stays within ±20&nbsp;ms of the target at ±300&nbsp;ppm over an hour. The target rises when arrival jitter grows, an underrun restarts at the target, and a burst beyond 3× the target drops the oldest audio in one step. Where the stream time skips ahead (frames lost on the way), the gap plays as silence, so the audio after it stays on time. The A/V sync classes (<code>SyncCore</code>, <code>AudioClock</code>, <code>ArrivalClock</code>, <code>VideoQueue</code>) are pure logic, driven by unit tests in simulated time. From the PlutoSAT station front end.</p>
+      <p><code>hamui/media</code> is a separate entry with no DOM components, so the UI bundle stays the same size. <code>AudioStreamPlayer</code> plays streamed PCM (DATV audio, SDR audio over a WebSocket) through an AudioWorklet ring buffer. A slow PI controller nudges the playback rate by at most 0.5&nbsp;% to absorb the clock difference between sender and sound card. It stays within ±20&nbsp;ms of the target at ±300&nbsp;ppm over an hour. The target rises when arrival jitter grows, an underrun restarts at the target, and a burst beyond 3× the target drops the oldest audio in one step. Where the stream time skips ahead (frames lost on the way), the gap plays as silence, so the audio after it stays on time. Every splice (start, underrun, a dropped burst, the edges of a gap) fades over 5&nbsp;ms, so none of them clicks. The A/V sync classes (<code>SyncCore</code>, <code>AudioClock</code>, <code>ArrivalClock</code>, <code>VideoQueue</code>) are pure logic, driven by unit tests in simulated time. From the PlutoSAT station front end.</p>
       <pre><code>import { AudioStreamPlayer } from 'hamui/media';    // UMD: dist/hamui-media.umd.cjs, global HamUIMedia
 
 const audio = new AudioStreamPlayer({
-  target: 0.12,        // minimum buffer, s (0.04..1)
+  target: 0.12,        // minimum buffer, s (0.04..3); jitter raises a lower one up to 1 s
   startReserve: 0.25,  // buffer at least this until 3 s of arrivals are known (0: start at target)
   fillGaps: true, maxGap: 1,   // play gaps in ticks/time as silence, up to 1 s
 });
@@ -741,7 +742,7 @@ audio.stats();      // {running, playing, fill, target, minTarget, jitter, ppm, 
 audio.level();      // 0..1 on a -60..0 dBFS scale, for a meter
 audio.position();   // stream position being heard, 90 kHz ticks: the master clock for video
 audio.flush();      // channel change: drop the buffer, prefill again
-audio.setTarget(0.4);                     // minimum buffer 0.04..1 s (the target itself with adaptive: false)
+audio.setTarget(0.4);                     // minimum buffer 0.04..3 s (the target itself with adaptive: false)
 analyserLevel(myAnalyserNode);            // the same meter scale for your own AnalyserNode
 
 // A/V sync with numbered timelines: put epoch on each frame
